@@ -1,0 +1,101 @@
+syntax = "proto3";
+package sf.tron.type.v1;
+
+option go_package = "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1;pbtron";
+
+// Block represents a Tron block from the RPC response
+message Block {
+  string block_id = 1;
+  BlockHeader block_header = 2;
+  repeated Transaction transactions = 3;
+}
+
+// BlockHeader represents the block header from the RPC response
+message BlockHeader {
+  RawData raw_data = 1;
+  bytes witness_signature = 2;
+}
+
+// RawData contains the core block data from the RPC response
+message RawData {
+  uint64 number = 1;
+  bytes tx_trie_root = 2;
+  bytes witness_address = 3;
+  bytes parent_hash = 4;
+  uint32 version = 5;
+  int64 timestamp = 6;
+}
+
+// Transaction represents a Tron transaction from the RPC response
+message Transaction {
+  repeated bytes signature = 1;
+  string tx_id = 2;
+  RawTransactionData raw_data = 3;
+  bytes raw_data_hex = 4;
+}
+
+// RawTransactionData contains the raw transaction data from the RPC response
+message RawTransactionData {
+  repeated Contract contract = 1;
+  bytes ref_block_bytes = 2;
+  bytes ref_block_hash = 3;
+  int64 expiration = 4;
+  int64 timestamp = 5;
+}
+
+// Contract represents a transaction contract from the RPC response
+message Contract {
+  string type = 1;
+  ContractParameter parameter = 2;
+}
+
+// ContractParameter represents the contract parameter from the RPC response
+message ContractParameter {
+  string type_url = 1;
+  bytes value = 2;
+}
+
+// TransactionInfo represents detailed transaction information from the RPC response
+message TransactionInfo {
+  repeated Log log = 1;
+  uint64 block_number = 2;
+  repeated string contract_result = 3;
+  int64 block_timestamp = 4;
+  Receipt receipt = 5;
+  string id = 6;
+  bytes contract_address = 7;
+  repeated InternalTransaction internal_transactions = 8;
+  int64 fee = 9;
+}
+
+// Log represents a transaction log from the RPC response
+message Log {
+  bytes address = 1;
+  bytes data = 2;
+  repeated bytes topics = 3;
+}
+
+// Receipt represents the transaction receipt from the RPC response
+message Receipt {
+  string result = 1;
+  int64 energy_usage = 2;
+  int64 energy_fee = 3;
+  int64 origin_energy_usage = 4;
+  int64 energy_usage_total = 5;
+  int64 net_usage = 6;
+  int64 net_fee = 7;
+}
+
+// InternalTransaction represents an internal transaction from the RPC response
+message InternalTransaction {
+  bytes caller_address = 1;
+  bytes note = 2;
+  bytes transfer_to_address = 3;
+  repeated CallValueInfo call_value_info = 4;
+  bytes hash = 5;
+}
+
+// CallValueInfo represents call value information from the RPC response
+message CallValueInfo {
+  int64 call_value = 1;
+}
