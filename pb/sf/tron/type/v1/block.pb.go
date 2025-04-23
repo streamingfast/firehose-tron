@@ -223,10 +223,11 @@ func (x *RawData) GetTimestamp() int64 {
 // Transaction represents a Tron transaction from the RPC response
 type Transaction struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Signature     [][]byte               `protobuf:"bytes,1,rep,name=signature,proto3" json:"signature,omitempty"`
-	TxId          string                 `protobuf:"bytes,2,opt,name=tx_id,json=txId,proto3" json:"tx_id,omitempty"`
-	RawData       *RawTransactionData    `protobuf:"bytes,3,opt,name=raw_data,json=rawData,proto3" json:"raw_data,omitempty"`
-	RawDataHex    []byte                 `protobuf:"bytes,4,opt,name=raw_data_hex,json=rawDataHex,proto3" json:"raw_data_hex,omitempty"`
+	Ret           []*TransactionRet      `protobuf:"bytes,1,rep,name=ret,proto3" json:"ret,omitempty"`
+	Signature     [][]byte               `protobuf:"bytes,2,rep,name=signature,proto3" json:"signature,omitempty"`
+	TxId          string                 `protobuf:"bytes,3,opt,name=tx_id,json=txId,proto3" json:"tx_id,omitempty"`
+	RawData       *RawTransactionData    `protobuf:"bytes,4,opt,name=raw_data,json=rawData,proto3" json:"raw_data,omitempty"`
+	RawDataHex    []byte                 `protobuf:"bytes,5,opt,name=raw_data_hex,json=rawDataHex,proto3" json:"raw_data_hex,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -261,6 +262,13 @@ func (*Transaction) Descriptor() ([]byte, []int) {
 	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{3}
 }
 
+func (x *Transaction) GetRet() []*TransactionRet {
+	if x != nil {
+		return x.Ret
+	}
+	return nil
+}
+
 func (x *Transaction) GetSignature() [][]byte {
 	if x != nil {
 		return x.Signature
@@ -289,6 +297,51 @@ func (x *Transaction) GetRawDataHex() []byte {
 	return nil
 }
 
+// TransactionRet represents the transaction return value
+type TransactionRet struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ContractRet   string                 `protobuf:"bytes,1,opt,name=contract_ret,json=contractRet,proto3" json:"contract_ret,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *TransactionRet) Reset() {
+	*x = TransactionRet{}
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *TransactionRet) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*TransactionRet) ProtoMessage() {}
+
+func (x *TransactionRet) ProtoReflect() protoreflect.Message {
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use TransactionRet.ProtoReflect.Descriptor instead.
+func (*TransactionRet) Descriptor() ([]byte, []int) {
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *TransactionRet) GetContractRet() string {
+	if x != nil {
+		return x.ContractRet
+	}
+	return ""
+}
+
 // RawTransactionData contains the raw transaction data from the RPC response
 type RawTransactionData struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -297,13 +350,14 @@ type RawTransactionData struct {
 	RefBlockHash  []byte                 `protobuf:"bytes,3,opt,name=ref_block_hash,json=refBlockHash,proto3" json:"ref_block_hash,omitempty"`
 	Expiration    int64                  `protobuf:"varint,4,opt,name=expiration,proto3" json:"expiration,omitempty"`
 	Timestamp     int64                  `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	FeeLimit      int64                  `protobuf:"varint,6,opt,name=fee_limit,json=feeLimit,proto3" json:"fee_limit,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RawTransactionData) Reset() {
 	*x = RawTransactionData{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[4]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -315,7 +369,7 @@ func (x *RawTransactionData) String() string {
 func (*RawTransactionData) ProtoMessage() {}
 
 func (x *RawTransactionData) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[4]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -328,7 +382,7 @@ func (x *RawTransactionData) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RawTransactionData.ProtoReflect.Descriptor instead.
 func (*RawTransactionData) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{4}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *RawTransactionData) GetContract() []*Contract {
@@ -366,6 +420,13 @@ func (x *RawTransactionData) GetTimestamp() int64 {
 	return 0
 }
 
+func (x *RawTransactionData) GetFeeLimit() int64 {
+	if x != nil {
+		return x.FeeLimit
+	}
+	return 0
+}
+
 // Contract represents a transaction contract from the RPC response
 type Contract struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
@@ -377,7 +438,7 @@ type Contract struct {
 
 func (x *Contract) Reset() {
 	*x = Contract{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[5]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -389,7 +450,7 @@ func (x *Contract) String() string {
 func (*Contract) ProtoMessage() {}
 
 func (x *Contract) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[5]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -402,7 +463,7 @@ func (x *Contract) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Contract.ProtoReflect.Descriptor instead.
 func (*Contract) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{5}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *Contract) GetType() string {
@@ -423,14 +484,14 @@ func (x *Contract) GetParameter() *ContractParameter {
 type ContractParameter struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	TypeUrl       string                 `protobuf:"bytes,1,opt,name=type_url,json=typeUrl,proto3" json:"type_url,omitempty"`
-	Value         []byte                 `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
+	Value         *ContractValue         `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *ContractParameter) Reset() {
 	*x = ContractParameter{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[6]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -442,7 +503,7 @@ func (x *ContractParameter) String() string {
 func (*ContractParameter) ProtoMessage() {}
 
 func (x *ContractParameter) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[6]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -455,7 +516,7 @@ func (x *ContractParameter) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContractParameter.ProtoReflect.Descriptor instead.
 func (*ContractParameter) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{6}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ContractParameter) GetTypeUrl() string {
@@ -465,11 +526,80 @@ func (x *ContractParameter) GetTypeUrl() string {
 	return ""
 }
 
-func (x *ContractParameter) GetValue() []byte {
+func (x *ContractParameter) GetValue() *ContractValue {
 	if x != nil {
 		return x.Value
 	}
 	return nil
+}
+
+// ContractValue represents the contract parameter value
+type ContractValue struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	Data            []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	OwnerAddress    []byte                 `protobuf:"bytes,2,opt,name=owner_address,json=ownerAddress,proto3" json:"owner_address,omitempty"`
+	ContractAddress []byte                 `protobuf:"bytes,3,opt,name=contract_address,json=contractAddress,proto3" json:"contract_address,omitempty"`
+	CallValue       int64                  `protobuf:"varint,4,opt,name=call_value,json=callValue,proto3" json:"call_value,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *ContractValue) Reset() {
+	*x = ContractValue{}
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[8]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ContractValue) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ContractValue) ProtoMessage() {}
+
+func (x *ContractValue) ProtoReflect() protoreflect.Message {
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[8]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ContractValue.ProtoReflect.Descriptor instead.
+func (*ContractValue) Descriptor() ([]byte, []int) {
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{8}
+}
+
+func (x *ContractValue) GetData() []byte {
+	if x != nil {
+		return x.Data
+	}
+	return nil
+}
+
+func (x *ContractValue) GetOwnerAddress() []byte {
+	if x != nil {
+		return x.OwnerAddress
+	}
+	return nil
+}
+
+func (x *ContractValue) GetContractAddress() []byte {
+	if x != nil {
+		return x.ContractAddress
+	}
+	return nil
+}
+
+func (x *ContractValue) GetCallValue() int64 {
+	if x != nil {
+		return x.CallValue
+	}
+	return 0
 }
 
 // TransactionInfo represents detailed transaction information from the RPC response
@@ -490,7 +620,7 @@ type TransactionInfo struct {
 
 func (x *TransactionInfo) Reset() {
 	*x = TransactionInfo{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[7]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -502,7 +632,7 @@ func (x *TransactionInfo) String() string {
 func (*TransactionInfo) ProtoMessage() {}
 
 func (x *TransactionInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[7]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -515,7 +645,7 @@ func (x *TransactionInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TransactionInfo.ProtoReflect.Descriptor instead.
 func (*TransactionInfo) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{7}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *TransactionInfo) GetLog() []*Log {
@@ -593,7 +723,7 @@ type Log struct {
 
 func (x *Log) Reset() {
 	*x = Log{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[8]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -605,7 +735,7 @@ func (x *Log) String() string {
 func (*Log) ProtoMessage() {}
 
 func (x *Log) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[8]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -618,7 +748,7 @@ func (x *Log) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Log.ProtoReflect.Descriptor instead.
 func (*Log) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{8}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *Log) GetAddress() []byte {
@@ -658,7 +788,7 @@ type Receipt struct {
 
 func (x *Receipt) Reset() {
 	*x = Receipt{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[9]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -670,7 +800,7 @@ func (x *Receipt) String() string {
 func (*Receipt) ProtoMessage() {}
 
 func (x *Receipt) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[9]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -683,7 +813,7 @@ func (x *Receipt) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Receipt.ProtoReflect.Descriptor instead.
 func (*Receipt) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{9}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *Receipt) GetResult() string {
@@ -749,7 +879,7 @@ type InternalTransaction struct {
 
 func (x *InternalTransaction) Reset() {
 	*x = InternalTransaction{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[10]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -761,7 +891,7 @@ func (x *InternalTransaction) String() string {
 func (*InternalTransaction) ProtoMessage() {}
 
 func (x *InternalTransaction) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[10]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -774,7 +904,7 @@ func (x *InternalTransaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use InternalTransaction.ProtoReflect.Descriptor instead.
 func (*InternalTransaction) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{10}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *InternalTransaction) GetCallerAddress() []byte {
@@ -822,7 +952,7 @@ type CallValueInfo struct {
 
 func (x *CallValueInfo) Reset() {
 	*x = CallValueInfo{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[11]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -834,7 +964,7 @@ func (x *CallValueInfo) String() string {
 func (*CallValueInfo) ProtoMessage() {}
 
 func (x *CallValueInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[11]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -847,7 +977,7 @@ func (x *CallValueInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CallValueInfo.ProtoReflect.Descriptor instead.
 func (*CallValueInfo) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{11}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *CallValueInfo) GetCallValue() int64 {
@@ -877,13 +1007,16 @@ const file_sf_tron_type_v1_block_proto_rawDesc = "" +
 	"\vparent_hash\x18\x04 \x01(\fR\n" +
 	"parentHash\x12\x18\n" +
 	"\aversion\x18\x05 \x01(\rR\aversion\x12\x1c\n" +
-	"\ttimestamp\x18\x06 \x01(\x03R\ttimestamp\"\xa2\x01\n" +
-	"\vTransaction\x12\x1c\n" +
-	"\tsignature\x18\x01 \x03(\fR\tsignature\x12\x13\n" +
-	"\x05tx_id\x18\x02 \x01(\tR\x04txId\x12>\n" +
-	"\braw_data\x18\x03 \x01(\v2#.sf.tron.type.v1.RawTransactionDataR\arawData\x12 \n" +
-	"\fraw_data_hex\x18\x04 \x01(\fR\n" +
-	"rawDataHex\"\xd7\x01\n" +
+	"\ttimestamp\x18\x06 \x01(\x03R\ttimestamp\"\xd5\x01\n" +
+	"\vTransaction\x121\n" +
+	"\x03ret\x18\x01 \x03(\v2\x1f.sf.tron.type.v1.TransactionRetR\x03ret\x12\x1c\n" +
+	"\tsignature\x18\x02 \x03(\fR\tsignature\x12\x13\n" +
+	"\x05tx_id\x18\x03 \x01(\tR\x04txId\x12>\n" +
+	"\braw_data\x18\x04 \x01(\v2#.sf.tron.type.v1.RawTransactionDataR\arawData\x12 \n" +
+	"\fraw_data_hex\x18\x05 \x01(\fR\n" +
+	"rawDataHex\"3\n" +
+	"\x0eTransactionRet\x12!\n" +
+	"\fcontract_ret\x18\x01 \x01(\tR\vcontractRet\"\xf4\x01\n" +
 	"\x12RawTransactionData\x125\n" +
 	"\bcontract\x18\x01 \x03(\v2\x19.sf.tron.type.v1.ContractR\bcontract\x12&\n" +
 	"\x0fref_block_bytes\x18\x02 \x01(\fR\rrefBlockBytes\x12$\n" +
@@ -891,13 +1024,20 @@ const file_sf_tron_type_v1_block_proto_rawDesc = "" +
 	"\n" +
 	"expiration\x18\x04 \x01(\x03R\n" +
 	"expiration\x12\x1c\n" +
-	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\"`\n" +
+	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\x12\x1b\n" +
+	"\tfee_limit\x18\x06 \x01(\x03R\bfeeLimit\"`\n" +
 	"\bContract\x12\x12\n" +
 	"\x04type\x18\x01 \x01(\tR\x04type\x12@\n" +
-	"\tparameter\x18\x02 \x01(\v2\".sf.tron.type.v1.ContractParameterR\tparameter\"D\n" +
+	"\tparameter\x18\x02 \x01(\v2\".sf.tron.type.v1.ContractParameterR\tparameter\"d\n" +
 	"\x11ContractParameter\x12\x19\n" +
-	"\btype_url\x18\x01 \x01(\tR\atypeUrl\x12\x14\n" +
-	"\x05value\x18\x02 \x01(\fR\x05value\"\x8a\x03\n" +
+	"\btype_url\x18\x01 \x01(\tR\atypeUrl\x124\n" +
+	"\x05value\x18\x02 \x01(\v2\x1e.sf.tron.type.v1.ContractValueR\x05value\"\x92\x01\n" +
+	"\rContractValue\x12\x12\n" +
+	"\x04data\x18\x01 \x01(\fR\x04data\x12#\n" +
+	"\rowner_address\x18\x02 \x01(\fR\fownerAddress\x12)\n" +
+	"\x10contract_address\x18\x03 \x01(\fR\x0fcontractAddress\x12\x1d\n" +
+	"\n" +
+	"call_value\x18\x04 \x01(\x03R\tcallValue\"\x8a\x03\n" +
 	"\x0fTransactionInfo\x12&\n" +
 	"\x03log\x18\x01 \x03(\v2\x14.sf.tron.type.v1.LogR\x03log\x12!\n" +
 	"\fblock_number\x18\x02 \x01(\x04R\vblockNumber\x12'\n" +
@@ -943,37 +1083,41 @@ func file_sf_tron_type_v1_block_proto_rawDescGZIP() []byte {
 	return file_sf_tron_type_v1_block_proto_rawDescData
 }
 
-var file_sf_tron_type_v1_block_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
+var file_sf_tron_type_v1_block_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
 var file_sf_tron_type_v1_block_proto_goTypes = []any{
 	(*Block)(nil),               // 0: sf.tron.type.v1.Block
 	(*BlockHeader)(nil),         // 1: sf.tron.type.v1.BlockHeader
 	(*RawData)(nil),             // 2: sf.tron.type.v1.RawData
 	(*Transaction)(nil),         // 3: sf.tron.type.v1.Transaction
-	(*RawTransactionData)(nil),  // 4: sf.tron.type.v1.RawTransactionData
-	(*Contract)(nil),            // 5: sf.tron.type.v1.Contract
-	(*ContractParameter)(nil),   // 6: sf.tron.type.v1.ContractParameter
-	(*TransactionInfo)(nil),     // 7: sf.tron.type.v1.TransactionInfo
-	(*Log)(nil),                 // 8: sf.tron.type.v1.Log
-	(*Receipt)(nil),             // 9: sf.tron.type.v1.Receipt
-	(*InternalTransaction)(nil), // 10: sf.tron.type.v1.InternalTransaction
-	(*CallValueInfo)(nil),       // 11: sf.tron.type.v1.CallValueInfo
+	(*TransactionRet)(nil),      // 4: sf.tron.type.v1.TransactionRet
+	(*RawTransactionData)(nil),  // 5: sf.tron.type.v1.RawTransactionData
+	(*Contract)(nil),            // 6: sf.tron.type.v1.Contract
+	(*ContractParameter)(nil),   // 7: sf.tron.type.v1.ContractParameter
+	(*ContractValue)(nil),       // 8: sf.tron.type.v1.ContractValue
+	(*TransactionInfo)(nil),     // 9: sf.tron.type.v1.TransactionInfo
+	(*Log)(nil),                 // 10: sf.tron.type.v1.Log
+	(*Receipt)(nil),             // 11: sf.tron.type.v1.Receipt
+	(*InternalTransaction)(nil), // 12: sf.tron.type.v1.InternalTransaction
+	(*CallValueInfo)(nil),       // 13: sf.tron.type.v1.CallValueInfo
 }
 var file_sf_tron_type_v1_block_proto_depIdxs = []int32{
 	1,  // 0: sf.tron.type.v1.Block.block_header:type_name -> sf.tron.type.v1.BlockHeader
 	3,  // 1: sf.tron.type.v1.Block.transactions:type_name -> sf.tron.type.v1.Transaction
 	2,  // 2: sf.tron.type.v1.BlockHeader.raw_data:type_name -> sf.tron.type.v1.RawData
-	4,  // 3: sf.tron.type.v1.Transaction.raw_data:type_name -> sf.tron.type.v1.RawTransactionData
-	5,  // 4: sf.tron.type.v1.RawTransactionData.contract:type_name -> sf.tron.type.v1.Contract
-	6,  // 5: sf.tron.type.v1.Contract.parameter:type_name -> sf.tron.type.v1.ContractParameter
-	8,  // 6: sf.tron.type.v1.TransactionInfo.log:type_name -> sf.tron.type.v1.Log
-	9,  // 7: sf.tron.type.v1.TransactionInfo.receipt:type_name -> sf.tron.type.v1.Receipt
-	10, // 8: sf.tron.type.v1.TransactionInfo.internal_transactions:type_name -> sf.tron.type.v1.InternalTransaction
-	11, // 9: sf.tron.type.v1.InternalTransaction.call_value_info:type_name -> sf.tron.type.v1.CallValueInfo
-	10, // [10:10] is the sub-list for method output_type
-	10, // [10:10] is the sub-list for method input_type
-	10, // [10:10] is the sub-list for extension type_name
-	10, // [10:10] is the sub-list for extension extendee
-	0,  // [0:10] is the sub-list for field type_name
+	4,  // 3: sf.tron.type.v1.Transaction.ret:type_name -> sf.tron.type.v1.TransactionRet
+	5,  // 4: sf.tron.type.v1.Transaction.raw_data:type_name -> sf.tron.type.v1.RawTransactionData
+	6,  // 5: sf.tron.type.v1.RawTransactionData.contract:type_name -> sf.tron.type.v1.Contract
+	7,  // 6: sf.tron.type.v1.Contract.parameter:type_name -> sf.tron.type.v1.ContractParameter
+	8,  // 7: sf.tron.type.v1.ContractParameter.value:type_name -> sf.tron.type.v1.ContractValue
+	10, // 8: sf.tron.type.v1.TransactionInfo.log:type_name -> sf.tron.type.v1.Log
+	11, // 9: sf.tron.type.v1.TransactionInfo.receipt:type_name -> sf.tron.type.v1.Receipt
+	12, // 10: sf.tron.type.v1.TransactionInfo.internal_transactions:type_name -> sf.tron.type.v1.InternalTransaction
+	13, // 11: sf.tron.type.v1.InternalTransaction.call_value_info:type_name -> sf.tron.type.v1.CallValueInfo
+	12, // [12:12] is the sub-list for method output_type
+	12, // [12:12] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_sf_tron_type_v1_block_proto_init() }
@@ -987,7 +1131,7 @@ func file_sf_tron_type_v1_block_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sf_tron_type_v1_block_proto_rawDesc), len(file_sf_tron_type_v1_block_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   12,
+			NumMessages:   14,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

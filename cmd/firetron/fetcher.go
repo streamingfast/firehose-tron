@@ -20,6 +20,7 @@ var FetchCommand = Command(fetchE,
 	ExactArgs(1),
 	Flags(func(flags *pflag.FlagSet) {
 		flags.StringArray("tron-endpoints", []string{""}, "List of endpoints to use to fetch different method calls")
+		flags.String("tron-api-key", "", "Tron API key for RPC access")
 		flags.String("state-dir", "/data/poller", "Directory to store state information")
 		flags.Duration("interval-between-fetch", 0, "Interval between fetch operations")
 		flags.Duration("latest-block-retry-interval", time.Second, "Interval between retries when fetching latest block")
@@ -30,6 +31,15 @@ var FetchCommand = Command(fetchE,
 
 func fetchE(cmd *cobra.Command, args []string) error {
 	rpcEndpoints := sflags.MustGetStringArray(cmd, "tron-endpoints")
+	if len(rpcEndpoints) == 0 {
+		return fmt.Errorf("at least one Tron RPC endpoint must be provided")
+	}
+
+	apiKey := sflags.MustGetString(cmd, "tron-api-key")
+	if apiKey == "" {
+		return fmt.Errorf("Tron API key must be provided")
+	}
+
 	stateDir := sflags.MustGetString(cmd, "state-dir")
 	startBlock, err := strconv.ParseUint(args[0], 10, 64)
 	if err != nil {
@@ -37,25 +47,28 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	}
 
 	fetchInterval := sflags.MustGetDuration(cmd, "interval-between-fetch")
-	maxBlockFetchDuration := sflags.MustGetDuration(cmd, "max-block-fetch-duration")
 	latestBlockRetryInterval := sflags.MustGetDuration(cmd, "latest-block-retry-interval")
+	maxBlockFetchDuration := sflags.MustGetDuration(cmd, "max-block-fetch-duration")
 
-	zlog.Info("launching firehose-tron poller",
+	logger.Info("launching firehose-tron poller",
 		zap.Strings("rpc_endpoints", rpcEndpoints),
 		zap.String("state_dir", stateDir),
 		zap.Uint64("first_streamable_block", startBlock),
 		zap.Duration("interval_between_fetch", fetchInterval),
 		zap.Duration("latest_block_retry_interval", latestBlockRetryInterval),
+		zap.Duration("max_block_fetch_duration", maxBlockFetchDuration),
 	)
 
-	rpcFetcher := rpc.NewFetcher(rpcEndpoints, fetchInterval, latestBlockRetryInterval, zlog)
+	// Create Tron client with the first endpoint
+	client := rpc.NewTronClient(rpcEndpoints[0], apiKey)
+	rpcFetcher := rpc.NewFetcher(client, fetchInterval, latestBlockRetryInterval, logger)
 
 	poller := blockpoller.New(
 		rpcFetcher,
 		blockpoller.NewFireBlockHandler("type.googleapis.com/sf.tron.type.v1.Block"),
 		nil, // No clients needed for Tron
-		blockpoller.WithStoringState[any](stateDir),
-		blockpoller.WithLogger[any](zlog),
+		blockpoller.WithStoringState[*rpc.TronClient](stateDir),
+		blockpoller.WithLogger[*rpc.TronClient](logger),
 	)
 
 	err = poller.Run(startBlock, nil, sflags.MustGetInt(cmd, "block-fetch-batch-size"))

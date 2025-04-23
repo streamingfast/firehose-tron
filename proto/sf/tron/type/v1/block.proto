@@ -28,10 +28,16 @@ message RawData {
 
 // Transaction represents a Tron transaction from the RPC response
 message Transaction {
-  repeated bytes signature = 1;
-  string tx_id = 2;
-  RawTransactionData raw_data = 3;
-  bytes raw_data_hex = 4;
+  repeated TransactionRet ret = 1;
+  repeated bytes signature = 2;
+  string tx_id = 3;
+  RawTransactionData raw_data = 4;
+  bytes raw_data_hex = 5;
+}
+
+// TransactionRet represents the transaction return value
+message TransactionRet {
+  string contract_ret = 1;
 }
 
 // RawTransactionData contains the raw transaction data from the RPC response
@@ -41,6 +47,7 @@ message RawTransactionData {
   bytes ref_block_hash = 3;
   int64 expiration = 4;
   int64 timestamp = 5;
+  int64 fee_limit = 6;
 }
 
 // Contract represents a transaction contract from the RPC response
@@ -52,7 +59,15 @@ message Contract {
 // ContractParameter represents the contract parameter from the RPC response
 message ContractParameter {
   string type_url = 1;
-  bytes value = 2;
+  ContractValue value = 2;
+}
+
+// ContractValue represents the contract parameter value
+message ContractValue {
+  bytes data = 1;
+  bytes owner_address = 2;
+  bytes contract_address = 3;
+  int64 call_value = 4;
 }
 
 // TransactionInfo represents detailed transaction information from the RPC response
@@ -99,3 +114,4 @@ message InternalTransaction {
 message CallValueInfo {
   int64 call_value = 1;
 }
+ 
