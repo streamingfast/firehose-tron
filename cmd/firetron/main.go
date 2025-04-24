@@ -23,6 +23,7 @@ func main() {
 
 		FetchCommand,
 		TestBlockCommand,
+		AnalyzeContractsCommand,
 
 		OnCommandErrorLogAndExit(logger),
 	)
