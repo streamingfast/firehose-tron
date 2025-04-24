@@ -9,6 +9,8 @@ import (
 	"net/http"
 	"time"
 
+	"crypto/sha256"
+
 	"encoding/hex"
 
 	pbbstream "github.com/streamingfast/bstream/pb/sf/bstream/v1"
@@ -101,21 +103,6 @@ func (f *Fetcher) Fetch(ctx context.Context, client *TronClient, requestBlockNum
 	return convertBlock(block, transactions)
 }
 
-func (f *Fetcher) fetchLatestBlockNum(ctx context.Context, client *TronClient) (uint64, error) {
-	body, err := doRequest(client, ctx, "GET", "walletsolidity/getnowblock", nil)
-	if err != nil {
-		return 0, fmt.Errorf("fetching latest block num: %w", err)
-	}
-
-	block, err := convertBlockFromJSON(body)
-	if err != nil {
-		return 0, fmt.Errorf("converting block: %w", err)
-	}
-
-	f.latestBlockNum = block.BlockHeader.RawData.Number
-	return block.BlockHeader.RawData.Number, nil
-}
-
 func (c *TronClient) GetBlock(ctx context.Context, blockNum uint64) (*pbtron.Block, error) {
 	reqBody := map[string]interface{}{
 		"detail":    true,
@@ -131,23 +118,170 @@ func (c *TronClient) GetBlock(ctx context.Context, blockNum uint64) (*pbtron.Blo
 }
 
 func (c *TronClient) GetTransactionInfoByBlockNum(ctx context.Context, blockNum uint64, txID string) (*pbtron.TransactionInfo, error) {
-	body, err := doRequest(c, ctx, "GET", "walletsolidity/gettransactioninfobyblocknum", map[string]string{
-		"num": fmt.Sprintf("%d", blockNum),
-	})
+	reqBody := map[string]interface{}{
+		"num": blockNum,
+	}
+
+	body, err := doRequest(c, ctx, "POST", "walletsolidity/gettransactioninfobyblocknum", reqBody)
 	if err != nil {
 		return nil, fmt.Errorf("get transaction info: %w", err)
 	}
 
-	// Parse the response as an array of transaction info
-	var txInfos []*pbtron.TransactionInfo
-	if err := json.Unmarshal(body, &txInfos); err != nil {
+	return convertTransactionInfoFromJSON(body, txID)
+}
+
+// VerifyIntegrity checks if the block and transaction info hashes match
+func VerifyIntegrity(block *pbtron.Block, txInfos []*pbtron.TransactionInfo) (bool, error) {
+	blockHash, err := generateBlockHash(block)
+	if err != nil {
+		return false, fmt.Errorf("generate block hash: %w", err)
+	}
+
+	txInfoHash, err := generateTransactionInfoHash(txInfos)
+	if err != nil {
+		return false, fmt.Errorf("generate transaction info hash: %w", err)
+	}
+
+	return bytes.Equal(blockHash, txInfoHash), nil
+}
+
+func (f *Fetcher) fetchLatestBlockNum(ctx context.Context, client *TronClient) (uint64, error) {
+	body, err := doRequest(client, ctx, "GET", "walletsolidity/getnowblock", nil)
+	if err != nil {
+		return 0, fmt.Errorf("fetching latest block num: %w", err)
+	}
+
+	block, err := convertBlockFromJSON(body)
+	if err != nil {
+		return 0, fmt.Errorf("converting block: %w", err)
+	}
+
+	f.latestBlockNum = block.BlockHeader.RawData.Number
+	return block.BlockHeader.RawData.Number, nil
+}
+
+// convertTransactionInfoFromJSON converts a JSON response to a TransactionInfo
+func convertTransactionInfoFromJSON(data []byte, txID string) (*pbtron.TransactionInfo, error) {
+	var txInfos []struct {
+		Log []struct {
+			Address string   `json:"address"`
+			Data    string   `json:"data"`
+			Topics  []string `json:"topics"`
+		} `json:"log"`
+		BlockNumber    uint64   `json:"blockNumber"`
+		ContractResult []string `json:"contractResult"`
+		BlockTimeStamp int64    `json:"blockTimeStamp"`
+		Receipt        struct {
+			Result           string `json:"result"`
+			EnergyUsage      uint64 `json:"energy_usage"`
+			EnergyUsageTotal uint64 `json:"energy_usage_total"`
+			NetUsage         uint64 `json:"net_usage"`
+			EnergyFee        uint64 `json:"energy_fee"`
+			NetFee           uint64 `json:"net_fee"`
+		} `json:"receipt"`
+		ID                   string `json:"id"`
+		ContractAddress      string `json:"contract_address"`
+		Fee                  uint64 `json:"fee"`
+		InternalTransactions []struct {
+			CallerAddress     string `json:"caller_address"`
+			Note              string `json:"note"`
+			TransferToAddress string `json:"transferTo_address"`
+			CallValueInfo     []struct {
+				CallValue uint64 `json:"callValue"`
+			} `json:"callValueInfo"`
+			Hash string `json:"hash"`
+		} `json:"internal_transactions"`
+	}
+
+	if err := json.Unmarshal(data, &txInfos); err != nil {
 		return nil, fmt.Errorf("unmarshal transaction info: %w", err)
 	}
 
 	// Find the transaction info with matching ID
 	for _, txInfo := range txInfos {
-		if txInfo.Id == txID {
-			return txInfo, nil
+		if txInfo.ID == txID {
+			// Convert to protobuf TransactionInfo
+			protoTxInfo := &pbtron.TransactionInfo{
+				Id:  txInfo.ID,
+				Fee: int64(txInfo.Fee),
+				Receipt: &pbtron.Receipt{
+					Result:           txInfo.Receipt.Result,
+					EnergyUsage:      int64(txInfo.Receipt.EnergyUsage),
+					EnergyUsageTotal: int64(txInfo.Receipt.EnergyUsageTotal),
+					NetUsage:         int64(txInfo.Receipt.NetUsage),
+					EnergyFee:        int64(txInfo.Receipt.EnergyFee),
+					NetFee:           int64(txInfo.Receipt.NetFee),
+				},
+			}
+
+			// Add logs if any
+			for _, log := range txInfo.Log {
+				address, err := hex.DecodeString(log.Address)
+				if err != nil {
+					return nil, fmt.Errorf("decode log address: %w", err)
+				}
+				data, err := hex.DecodeString(log.Data)
+				if err != nil {
+					return nil, fmt.Errorf("decode log data: %w", err)
+				}
+				topics := make([][]byte, len(log.Topics))
+				for i, topic := range log.Topics {
+					topicBytes, err := hex.DecodeString(topic)
+					if err != nil {
+						return nil, fmt.Errorf("decode log topic: %w", err)
+					}
+					topics[i] = topicBytes
+				}
+				protoTxInfo.Log = append(protoTxInfo.Log, &pbtron.Log{
+					Address: address,
+					Data:    data,
+					Topics:  topics,
+				})
+			}
+
+			// Add internal transactions if any
+			for _, internalTx := range txInfo.InternalTransactions {
+				callerAddress, err := hex.DecodeString(internalTx.CallerAddress)
+				if err != nil {
+					return nil, fmt.Errorf("decode caller address: %w", err)
+				}
+				transferToAddress, err := hex.DecodeString(internalTx.TransferToAddress)
+				if err != nil {
+					return nil, fmt.Errorf("decode transfer to address: %w", err)
+				}
+				hash, err := hex.DecodeString(internalTx.Hash)
+				if err != nil {
+					return nil, fmt.Errorf("decode hash: %w", err)
+				}
+
+				protoInternalTx := &pbtron.InternalTransaction{
+					CallerAddress:     callerAddress,
+					Note:              []byte(internalTx.Note),
+					TransferToAddress: transferToAddress,
+					Hash:              hash,
+				}
+
+				if len(internalTx.CallValueInfo) > 0 {
+					protoInternalTx.CallValueInfo = []*pbtron.CallValueInfo{
+						{
+							CallValue: int64(internalTx.CallValueInfo[0].CallValue),
+						},
+					}
+				}
+
+				protoTxInfo.InternalTransactions = append(protoTxInfo.InternalTransactions, protoInternalTx)
+			}
+
+			// Add contract address if present
+			if txInfo.ContractAddress != "" {
+				contractAddress, err := hex.DecodeString(txInfo.ContractAddress)
+				if err != nil {
+					return nil, fmt.Errorf("decode contract address: %w", err)
+				}
+				protoTxInfo.ContractAddress = contractAddress
+			}
+
+			return protoTxInfo, nil
 		}
 	}
 
@@ -222,7 +356,7 @@ func convertBlockFromJSON(data []byte) (*pbtron.Block, error) {
 
 	// Convert transactions
 	for _, txData := range jsonBlock.Transactions {
-		tx, err := convertTransactionFromJSON(txData)
+		tx, err := convertBlockTransactionFromJSON(txData)
 		if err != nil {
 			return nil, fmt.Errorf("convert transaction: %w", err)
 		}
@@ -232,8 +366,8 @@ func convertBlockFromJSON(data []byte) (*pbtron.Block, error) {
 	return block, nil
 }
 
-// convertTransactionFromJSON converts a JSON response to a Transaction
-func convertTransactionFromJSON(data []byte) (*pbtron.Transaction, error) {
+// convertBlockTransactionFromJSON converts a JSON response to a Transaction
+func convertBlockTransactionFromJSON(data []byte) (*pbtron.Transaction, error) {
 	var aux struct {
 		Signature  []string `json:"signature"`
 		TxId       string   `json:"txID"`
@@ -428,4 +562,38 @@ func convertBlock(block *pbtron.Block, transactions []*pbtron.TransactionInfo) (
 	// }
 
 	return firehoseBlock, false, nil
+}
+
+// generateBlockHash generates a hash from the transaction IDs in a block
+func generateBlockHash(block *pbtron.Block) ([]byte, error) {
+	var txIDs []string
+	for _, tx := range block.Transactions {
+		txIDs = append(txIDs, tx.TxId)
+	}
+
+	h := sha256.New()
+	for _, txID := range txIDs {
+		if _, err := h.Write([]byte(txID)); err != nil {
+			return nil, fmt.Errorf("write to hash: %w", err)
+		}
+	}
+
+	return h.Sum(nil), nil
+}
+
+// generateTransactionInfoHash generates a hash from the transaction IDs in transaction info
+func generateTransactionInfoHash(txInfos []*pbtron.TransactionInfo) ([]byte, error) {
+	var txIDs []string
+	for _, txInfo := range txInfos {
+		txIDs = append(txIDs, txInfo.Id)
+	}
+
+	h := sha256.New()
+	for _, txID := range txIDs {
+		if _, err := h.Write([]byte(txID)); err != nil {
+			return nil, fmt.Errorf("write to hash: %w", err)
+		}
+	}
+
+	return h.Sum(nil), nil
 }
