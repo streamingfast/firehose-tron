@@ -17,6 +17,7 @@ import (
 	"github.com/streamingfast/firehose-core/blockpoller"
 	pbtron "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1"
 	"go.uber.org/zap"
+	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -97,6 +98,15 @@ func (f *Fetcher) Fetch(ctx context.Context, client *TronClient, requestBlockNum
 			return nil, false, fmt.Errorf("getting transaction info for tx %s: %w", tx.TxId, err)
 		}
 		transactions[i] = txInfo
+	}
+
+	// Verify integrity between block and transaction info
+	integrity, err := VerifyIntegrity(block, transactions)
+	if err != nil {
+		return nil, false, fmt.Errorf("verifying integrity: %w", err)
+	}
+	if !integrity {
+		return nil, false, fmt.Errorf("integrity check failed: block and transaction info hashes do not match")
 	}
 
 	// Convert to pbbstream.Block format
@@ -519,47 +529,31 @@ func doRequest(client *TronClient, ctx context.Context, method, path string, bod
 }
 
 func convertBlock(block *pbtron.Block, transactions []*pbtron.TransactionInfo) (*pbbstream.Block, bool, error) {
+
+	var parentBlockNum uint64
+	if block.BlockHeader.RawData.Number > 0 {
+		parentBlockNum = block.BlockHeader.RawData.Number - 1
+	}
+	libNum := parentBlockNum
 	// Create a new Firehose block
 	firehoseBlock := &pbbstream.Block{
-		Id:       block.BlockId,
-		Number:   block.BlockHeader.RawData.Number,
-		ParentId: string(block.BlockHeader.RawData.ParentHash), // Convert bytes to string
+		Id:        block.BlockId,
+		Number:    block.BlockHeader.RawData.Number,
+		ParentId:  string(block.BlockHeader.RawData.ParentHash),
+		ParentNum: parentBlockNum,
 		Timestamp: &timestamppb.Timestamp{
 			Seconds: block.BlockHeader.RawData.Timestamp / 1000,
 			Nanos:   int32((block.BlockHeader.RawData.Timestamp % 1000) * 1000000),
 		},
-		LibNum: block.BlockHeader.RawData.Number, // Using current block as LIB for now
+		LibNum: libNum,
 	}
 
-	// // Add transactions to the block
-	// for i, tx := range block.Transactions {
-	// 	txInfo := transactions[i]
-	// 	if txInfo == nil {
-	// 		continue
-	// 	}
-
-	// 	// Create transaction trace
-	// 	trace := &pbbstream.TransactionTrace{
-	// 		Id:     tx.TxId,
-	// 		Status: pbbstream.TransactionStatus_TRANSACTIONSTATUS_EXECUTED,
-	// 		Receipt: &pbbstream.TransactionReceipt{
-	// 			Status:   txInfo.Receipt.Result == "SUCCESS",
-	// 			GasUsed:  uint64(txInfo.Receipt.EnergyUsage),
-	// 			GasPrice: uint64(txInfo.Fee / txInfo.Receipt.EnergyUsage),
-	// 		},
-	// 	}
-
-	// 	// Add internal transactions if any
-	// 	for _, internalTx := range txInfo.InternalTransactions {
-	// 		internalTrace := &pbbstream.TransactionTrace{
-	// 			Id:     string(internalTx.Hash), // Convert bytes to string
-	// 			Status: pbbstream.TransactionStatus_TRANSACTIONSTATUS_EXECUTED,
-	// 		}
-	// 		trace.InternalTraces = append(trace.InternalTraces, internalTrace)
-	// 	}
-
-	// 	firehoseBlock.TransactionTraces = append(firehoseBlock.TransactionTraces, trace)
-	// }
+	// Create anypb payload with our block data
+	anyBlock, err := anypb.New(block)
+	if err != nil {
+		return nil, false, fmt.Errorf("unable to create anypb: %w", err)
+	}
+	firehoseBlock.Payload = anyBlock
 
 	return firehoseBlock, false, nil
 }
