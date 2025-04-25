@@ -1,0 +1,11 @@
+version: v2
+modules:
+  - path: protocol
+    name: buf.build/streamingfast/tron-protocol
+    excludes:
+    - protocol/core/tron
+deps:
+  - buf.build/googleapis/googleapis
+breaking:
+  use:
+    - FILE
