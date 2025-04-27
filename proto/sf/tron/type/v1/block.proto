@@ -4,6 +4,7 @@ package sf.tron.type.v1;
 option go_package = "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1;pbtron";
 
 // Block represents a Tron block from the RPC response
+// TODO Remove the block_ prefix from the fields
 message Block {
   string block_id = 1;
   BlockHeader block_header = 2;
@@ -17,10 +18,12 @@ message BlockHeader {
 }
 
 // RawData contains the core block data from the RPC response
+// TODO put this inline with the block header
 message RawData {
   uint64 number = 1;
   bytes tx_trie_root = 2;
   bytes witness_address = 3;
+  // TODO Add a parent number field (number - 1 unless 0)
   bytes parent_hash = 4;
   uint32 version = 5;
   int64 timestamp = 6;
@@ -32,6 +35,7 @@ message Transaction {
   repeated bytes signature = 2;
   string tx_id = 3;
   RawTransactionData raw_data = 4;
+  // TODO Use directly their tron-go protobuf types
   bytes raw_data_hex = 5;
 }
 

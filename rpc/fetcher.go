@@ -534,6 +534,8 @@ func convertBlock(block *pbtron.Block, transactions []*pbtron.TransactionInfo) (
 	if block.BlockHeader.RawData.Number > 0 {
 		parentBlockNum = block.BlockHeader.RawData.Number - 1
 	}
+	// TODO: Last irreversible block number
+	// For now we can do this by subtracting 20 from the block number
 	libNum := parentBlockNum
 	// Create a new Firehose block
 	firehoseBlock := &pbbstream.Block{
