@@ -2,16 +2,10 @@ package rpc
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"strings"
 	"time"
 
-	"crypto/sha256"
-	"encoding/json"
-
-	"github.com/mr-tron/base58"
 	pbbstream "github.com/streamingfast/bstream/pb/sf/bstream/v1"
 	"github.com/streamingfast/cli"
 	"github.com/streamingfast/dgrpc"
@@ -21,7 +15,6 @@ import (
 	"github.com/streamingfast/firehose-tron/tron/pb/api"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -222,102 +215,12 @@ func convertTransactionExtentionToTransaction(txExt *api.TransactionExtention) (
 	return tx, nil
 }
 
-func hexToTronAddress(addr string) string {
-	if len(addr) == 0 {
-		return ""
-	}
-
-	// First decode from base64
-	decoded, err := base64.StdEncoding.DecodeString(addr)
-	if err != nil {
-		fmt.Printf("Error decoding base64: %v\n", err)
-		return addr
-	}
-
-	// The decoded bytes should be the raw address bytes
-	// Add Tron address prefix (0x41) if not already present
-	if len(decoded) > 0 && decoded[0] != 0x41 {
-		decoded = append([]byte{0x41}, decoded...)
-	}
-
-	// Calculate checksum
-	hash := sha256.Sum256(decoded)
-	hash = sha256.Sum256(hash[:])
-	checksum := hash[:4]
-
-	// Append checksum
-	addressWithChecksum := append(decoded, checksum...)
-
-	// Base58 encode
-	result := "T" + base58.Encode(addressWithChecksum)
-	return result
-}
-
-func decodeContractParameter(param *anypb.Any) (map[string]interface{}, error) {
-	paramMap := make(map[string]interface{})
-
-	// Convert Any to map[string]interface{}
-	paramBytes, err := protojson.Marshal(param)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal contract parameter: %w", err)
-	}
-
-	if err := json.Unmarshal(paramBytes, &paramMap); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal contract parameter: %w", err)
-	}
-
-	// Handle nested structures
-	var processValue func(interface{}) interface{}
-	processValue = func(value interface{}) interface{} {
-		switch v := value.(type) {
-		case string:
-			// Check if it's a base64 encoded bytes field
-			if _, err := base64.StdEncoding.DecodeString(v); err == nil {
-				// If it's an address field (ends with "Address"), convert to Tron format
-				return hexToTronAddress(v)
-			}
-			return v
-		case []interface{}:
-			// Handle arrays
-			result := make([]interface{}, len(v))
-			for i, item := range v {
-				result[i] = processValue(item)
-			}
-			return result
-		case map[string]interface{}:
-			// Handle maps (nested objects)
-			result := make(map[string]interface{})
-			for key, val := range v {
-				// Special handling for address fields in nested structures
-				if strings.HasSuffix(key, "Address") {
-					if addr, ok := val.(string); ok {
-						result[key] = hexToTronAddress(addr)
-						continue
-					}
-				}
-				result[key] = processValue(val)
-			}
-			return result
-		default:
-			return v
-		}
-	}
-
-	// Process the entire parameter map
-	for key, value := range paramMap {
-		paramMap[key] = processValue(value)
-	}
-
-	return paramMap, nil
-}
-
 func convertBlock(block *pbtron.Block) (*pbbstream.Block, bool, error) {
 	var parentBlockNum uint64
 	if block.Header.Number > 0 {
 		parentBlockNum = block.Header.Number - 1
 	}
-	// TODO: Last irreversible block number
-	// For now we can do this by subtracting 20 from the block number
+	// For now we use 20 blocks behind as libNum
 	var libNum uint64
 	if block.Header.Number > 20 {
 		libNum = block.Header.Number - 20
@@ -325,49 +228,17 @@ func convertBlock(block *pbtron.Block) (*pbbstream.Block, bool, error) {
 		libNum = 0
 	}
 
-	blockID, err := base64.StdEncoding.DecodeString(string(block.Id))
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to decode block id: %w", err)
-	}
-
-	parentHash, err := base64.StdEncoding.DecodeString(string(block.Header.ParentHash))
-	if err != nil {
-		return nil, false, fmt.Errorf("failed to decode parent hash: %w", err)
-	}
-
 	// Create a new Firehose block
 	firehoseBlock := &pbbstream.Block{
-		Id:        hex.EncodeToString(blockID),
+		Id:        hex.EncodeToString(block.Id),
 		Number:    block.Header.Number,
-		ParentId:  hex.EncodeToString(parentHash),
+		ParentId:  hex.EncodeToString(block.Header.ParentHash),
 		ParentNum: parentBlockNum,
 		Timestamp: &timestamppb.Timestamp{
 			Seconds: block.Header.Timestamp / 1000,
 			Nanos:   int32((block.Header.Timestamp % 1000) * 1000000),
 		},
 		LibNum: libNum,
-	}
-
-	// Process transactions to decode addresses
-	for _, tx := range block.Transactions {
-		if tx.Contracts != nil {
-			for _, contract := range tx.Contracts {
-				if contract.Parameter != nil {
-					decodedParam, err := decodeContractParameter(contract.Parameter)
-					if err == nil {
-						// Convert the decoded map back to JSON bytes
-						jsonBytes, err := json.Marshal(decodedParam)
-						if err == nil {
-							// Update the contract parameter with decoded addresses
-							contract.Parameter = &anypb.Any{
-								TypeUrl: contract.Parameter.TypeUrl,
-								Value:   jsonBytes,
-							}
-						}
-					}
-				}
-			}
-		}
 	}
 
 	// Create anypb payload with our block data
