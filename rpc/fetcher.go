@@ -1,7 +1,9 @@
 package rpc
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
 	"time"
@@ -13,6 +15,7 @@ import (
 	firecoreRPC "github.com/streamingfast/firehose-core/rpc"
 	pbtron "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1"
 	"github.com/streamingfast/firehose-tron/tron/pb/api"
+	"github.com/streamingfast/firehose-tron/tron/pb/core"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/types/known/anypb"
@@ -97,8 +100,22 @@ func (f *Fetcher) Fetch(ctx context.Context, client api.WalletClient, requestBlo
 		return nil, false, fmt.Errorf("getting block: %w", err)
 	}
 
-	// Convert block extension to our block type
-	block, err := convertBlockExtentionToBlock(blockExt)
+	transactionInfoList, err := GetTransactionInfoByBlockNum(ctx, client, uint64(requestBlockNum))
+	if err != nil {
+		return nil, false, fmt.Errorf("getting transaction info: %w", err)
+	}
+
+	areTransactionsIntegral, err := verifyTransactionsIntegrity(blockExt.Transactions, transactionInfoList.TransactionInfo)
+	if err != nil {
+		return nil, false, fmt.Errorf("verifying transactions integrity: %w", err)
+	}
+
+	if !areTransactionsIntegral {
+		return nil, false, fmt.Errorf("transactions are not integral")
+	}
+
+	// Convert block extension and transaction info list to our block type
+	block, err := convertBlockAndTransactionsToBlock(blockExt, transactionInfoList)
 	if err != nil {
 		return nil, false, fmt.Errorf("converting block: %w", err)
 	}
@@ -108,16 +125,21 @@ func (f *Fetcher) Fetch(ctx context.Context, client api.WalletClient, requestBlo
 }
 
 func GetBlock(ctx context.Context, client api.WalletClient, blockNum int64) (*api.BlockExtention, error) {
-	// Create a context with timeout for the RPC call
-	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
-	defer cancel()
-
 	block, err := client.GetBlockByNum2(ctx, &api.NumberMessage{Num: blockNum})
 	if err != nil {
 		return nil, fmt.Errorf("get block: %w", err)
 	}
 
 	return block, nil
+}
+
+func GetTransactionInfoByBlockNum(ctx context.Context, client api.WalletClient, blockNum uint64) (*api.TransactionInfoList, error) {
+	txInfoList, err := client.GetTransactionInfoByBlockNum(ctx, &api.NumberMessage{Num: int64(blockNum)})
+	if err != nil {
+		return nil, fmt.Errorf("get block: %w", err)
+	}
+
+	return txInfoList, nil
 }
 
 func (f *Fetcher) fetchLatestBlockNum(ctx context.Context, client api.WalletClient) (int64, error) {
@@ -130,7 +152,53 @@ func (f *Fetcher) fetchLatestBlockNum(ctx context.Context, client api.WalletClie
 	return block.BlockHeader.RawData.Number, nil
 }
 
-func convertBlockExtentionToBlock(blockExt *api.BlockExtention) (*pbtron.Block, error) {
+func generateBlockTransactionsHash(getBlockTransactions []*api.TransactionExtention) ([]byte, error) {
+	var txIDs []string
+	for _, tx := range getBlockTransactions {
+		txIDs = append(txIDs, hex.EncodeToString(tx.Txid))
+	}
+
+	h := sha256.New()
+	for _, txID := range txIDs {
+		if _, err := h.Write([]byte(txID)); err != nil {
+			return nil, fmt.Errorf("write to hash: %w", err)
+		}
+	}
+
+	return h.Sum(nil), nil
+}
+
+func generateTransactionInfoTransactionsHash(getTransactionTransactions []*core.TransactionInfo) ([]byte, error) {
+	var txIDs []string
+	for _, tx := range getTransactionTransactions {
+		txIDs = append(txIDs, hex.EncodeToString(tx.Id))
+	}
+
+	h := sha256.New()
+	for _, txID := range txIDs {
+		if _, err := h.Write([]byte(txID)); err != nil {
+			return nil, fmt.Errorf("write to hash: %w", err)
+		}
+	}
+
+	return h.Sum(nil), nil
+}
+
+func verifyTransactionsIntegrity(getBlockTransactions []*api.TransactionExtention, getTransactionTransactions []*core.TransactionInfo) (bool, error) {
+	blockTransactionsHash, err := generateBlockTransactionsHash(getBlockTransactions)
+	if err != nil {
+		return false, fmt.Errorf("generate block transactions hash: %w", err)
+	}
+
+	transactionInfoTransactionsHash, err := generateTransactionInfoTransactionsHash(getTransactionTransactions)
+	if err != nil {
+		return false, fmt.Errorf("generate transaction info transactions hash: %w", err)
+	}
+
+	return bytes.Equal(blockTransactionsHash, transactionInfoTransactionsHash), nil
+}
+
+func convertBlockAndTransactionsToBlock(blockExt *api.BlockExtention, transactionInfoList *api.TransactionInfoList) (*pbtron.Block, error) {
 	block := &pbtron.Block{
 		Id: blockExt.Blockid,
 		Header: &pbtron.BlockHeader{
@@ -146,11 +214,18 @@ func convertBlockExtentionToBlock(blockExt *api.BlockExtention) (*pbtron.Block, 
 	}
 
 	// Convert transactions
-	for _, txExt := range blockExt.Transactions {
+	for i, txExt := range blockExt.Transactions {
 		tx, err := convertTransactionExtentionToTransaction(txExt)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert transaction: %w", err)
 		}
+		// TODO Remove this once typed is defined
+		// We can safely assume that the transaction info list is in the same order as the transactions since we validated the integrity beforehand
+		anyTxInfo, err := anypb.New(transactionInfoList.TransactionInfo[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert transaction extension to Any: %w", err)
+		}
+		tx.TransactionInfo = anyTxInfo
 		block.Transactions = append(block.Transactions, tx)
 	}
 
@@ -172,13 +247,18 @@ func convertTransactionExtentionToTransaction(txExt *api.TransactionExtention) (
 	tx := &pbtron.Transaction{
 		Txid:          txExt.Txid,
 		Signature:     txExt.Transaction.Signature,
-		Result:        txExt.Result != nil && txExt.Result.Code == 0, // Success if code is 0
-		ResultMessage: string(txExt.Result.GetMessage()),             // Convert bytes to string
 		RefBlockBytes: rawData.RefBlockBytes,
 		RefBlockHash:  rawData.RefBlockHash,
 		Expiration:    rawData.Expiration,
 		Timestamp:     rawData.Timestamp,
 	}
+
+	// TODO Remove this once typed is defined
+	anyTxExt, err := anypb.New(txExt)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert transaction extension to Any: %w", err)
+	}
+	tx.TransactionExtention = anyTxExt
 
 	// Convert contracts
 	for _, contract := range rawData.Contract {
@@ -193,11 +273,7 @@ func convertTransactionExtentionToTransaction(txExt *api.TransactionExtention) (
 
 		// Convert parameter if it exists
 		if contract.Parameter != nil {
-			anyParam, err := anypb.New(contract.Parameter)
-			if err != nil {
-				return nil, fmt.Errorf("failed to convert contract parameter to any: %w", err)
-			}
-			ourContract.Parameter = anyParam
+			ourContract.Parameter = contract.Parameter
 		}
 
 		// Add provider and contract name if they exist

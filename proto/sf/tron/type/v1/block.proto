@@ -21,27 +21,35 @@ message BlockHeader {
   bytes parent_hash = 5;
   uint32 version = 6;
   int64 timestamp = 7;
-  bytes witness_signature = 9;
+  bytes witness_signature = 8;
 }
 
 // Transaction represents a flattened Tron transaction
 message Transaction {
   // Basic transaction info
+  // TODO validate what field we want here
   bytes txid = 1;
   repeated bytes signature = 2;
-  bool result = 3;
-  string result_message = 4;
-  
-  // Raw data fields (flattened)
-  bytes ref_block_bytes = 5;
-  bytes ref_block_hash = 6;
-  int64 expiration = 7;
-  int64 timestamp = 8;
-  
-  // Contract info
+  bytes ref_block_bytes = 3;
+  bytes ref_block_hash = 4;
+  int64 expiration = 5;
+  int64 timestamp = 6;
+
+  // TODO Do we want result and result message here?
+
+  // TODO Add proper type for this
+  // Raw TransactionExtention
+  google.protobuf.Any transaction_extention = 7;
+
+  // TODO Add proper type for this
+  // Raw TransactionInfo
+  google.protobuf.Any transaction_info = 8;
+
+  // TODO Add proper type for this
   repeated Contract contracts = 9;
 }
 
+// TODO Remove this once typed is defined
 // Contract represents a transaction contract
 message Contract {
   enum ContractType {

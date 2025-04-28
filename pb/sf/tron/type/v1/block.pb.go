@@ -259,7 +259,7 @@ type BlockHeader struct {
 	ParentHash       []byte                 `protobuf:"bytes,5,opt,name=parent_hash,json=parentHash,proto3" json:"parent_hash,omitempty"`
 	Version          uint32                 `protobuf:"varint,6,opt,name=version,proto3" json:"version,omitempty"`
 	Timestamp        int64                  `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	WitnessSignature []byte                 `protobuf:"bytes,9,opt,name=witness_signature,json=witnessSignature,proto3" json:"witness_signature,omitempty"`
+	WitnessSignature []byte                 `protobuf:"bytes,8,opt,name=witness_signature,json=witnessSignature,proto3" json:"witness_signature,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -356,13 +356,16 @@ type Transaction struct {
 	// Basic transaction info
 	Txid          []byte   `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
 	Signature     [][]byte `protobuf:"bytes,2,rep,name=signature,proto3" json:"signature,omitempty"`
-	Result        bool     `protobuf:"varint,3,opt,name=result,proto3" json:"result,omitempty"`
-	ResultMessage string   `protobuf:"bytes,4,opt,name=result_message,json=resultMessage,proto3" json:"result_message,omitempty"`
-	// Raw data fields (flattened)
-	RefBlockBytes []byte `protobuf:"bytes,5,opt,name=ref_block_bytes,json=refBlockBytes,proto3" json:"ref_block_bytes,omitempty"`
-	RefBlockHash  []byte `protobuf:"bytes,6,opt,name=ref_block_hash,json=refBlockHash,proto3" json:"ref_block_hash,omitempty"`
-	Expiration    int64  `protobuf:"varint,7,opt,name=expiration,proto3" json:"expiration,omitempty"`
-	Timestamp     int64  `protobuf:"varint,8,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	RefBlockBytes []byte   `protobuf:"bytes,3,opt,name=ref_block_bytes,json=refBlockBytes,proto3" json:"ref_block_bytes,omitempty"`
+	RefBlockHash  []byte   `protobuf:"bytes,4,opt,name=ref_block_hash,json=refBlockHash,proto3" json:"ref_block_hash,omitempty"`
+	Expiration    int64    `protobuf:"varint,5,opt,name=expiration,proto3" json:"expiration,omitempty"`
+	Timestamp     int64    `protobuf:"varint,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// TODO Add proper type for this
+	// Raw TransactionExtention
+	TransactionExtention *anypb.Any `protobuf:"bytes,7,opt,name=transaction_extention,json=transactionExtention,proto3" json:"transaction_extention,omitempty"`
+	// TODO Add proper type for this
+	// Raw TransactionInfo
+	TransactionInfo *anypb.Any `protobuf:"bytes,8,opt,name=transaction_info,json=transactionInfo,proto3" json:"transaction_info,omitempty"`
 	// Contract info
 	Contracts     []*Contract `protobuf:"bytes,9,rep,name=contracts,proto3" json:"contracts,omitempty"`
 	unknownFields protoimpl.UnknownFields
@@ -413,20 +416,6 @@ func (x *Transaction) GetSignature() [][]byte {
 	return nil
 }
 
-func (x *Transaction) GetResult() bool {
-	if x != nil {
-		return x.Result
-	}
-	return false
-}
-
-func (x *Transaction) GetResultMessage() string {
-	if x != nil {
-		return x.ResultMessage
-	}
-	return ""
-}
-
 func (x *Transaction) GetRefBlockBytes() []byte {
 	if x != nil {
 		return x.RefBlockBytes
@@ -453,6 +442,20 @@ func (x *Transaction) GetTimestamp() int64 {
 		return x.Timestamp
 	}
 	return 0
+}
+
+func (x *Transaction) GetTransactionExtention() *anypb.Any {
+	if x != nil {
+		return x.TransactionExtention
+	}
+	return nil
+}
+
+func (x *Transaction) GetTransactionInfo() *anypb.Any {
+	if x != nil {
+		return x.TransactionInfo
+	}
+	return nil
 }
 
 func (x *Transaction) GetContracts() []*Contract {
@@ -558,18 +561,18 @@ const file_sf_tron_type_v1_block_proto_rawDesc = "" +
 	"parentHash\x12\x18\n" +
 	"\aversion\x18\x06 \x01(\rR\aversion\x12\x1c\n" +
 	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\x12+\n" +
-	"\x11witness_signature\x18\t \x01(\fR\x10witnessSignature\"\xc3\x02\n" +
+	"\x11witness_signature\x18\b \x01(\fR\x10witnessSignature\"\x90\x03\n" +
 	"\vTransaction\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\fR\x04txid\x12\x1c\n" +
-	"\tsignature\x18\x02 \x03(\fR\tsignature\x12\x16\n" +
-	"\x06result\x18\x03 \x01(\bR\x06result\x12%\n" +
-	"\x0eresult_message\x18\x04 \x01(\tR\rresultMessage\x12&\n" +
-	"\x0fref_block_bytes\x18\x05 \x01(\fR\rrefBlockBytes\x12$\n" +
-	"\x0eref_block_hash\x18\x06 \x01(\fR\frefBlockHash\x12\x1e\n" +
+	"\tsignature\x18\x02 \x03(\fR\tsignature\x12&\n" +
+	"\x0fref_block_bytes\x18\x03 \x01(\fR\rrefBlockBytes\x12$\n" +
+	"\x0eref_block_hash\x18\x04 \x01(\fR\frefBlockHash\x12\x1e\n" +
 	"\n" +
-	"expiration\x18\a \x01(\x03R\n" +
+	"expiration\x18\x05 \x01(\x03R\n" +
 	"expiration\x12\x1c\n" +
-	"\ttimestamp\x18\b \x01(\x03R\ttimestamp\x127\n" +
+	"\ttimestamp\x18\x06 \x01(\x03R\ttimestamp\x12I\n" +
+	"\x15transaction_extention\x18\a \x01(\v2\x14.google.protobuf.AnyR\x14transactionExtention\x12?\n" +
+	"\x10transaction_info\x18\b \x01(\v2\x14.google.protobuf.AnyR\x0ftransactionInfo\x127\n" +
 	"\tcontracts\x18\t \x03(\v2\x19.sf.tron.type.v1.ContractR\tcontracts\"\xfc\b\n" +
 	"\bContract\x12:\n" +
 	"\x04type\x18\x01 \x01(\x0e2&.sf.tron.type.v1.Contract.ContractTypeR\x04type\x122\n" +
@@ -649,14 +652,16 @@ var file_sf_tron_type_v1_block_proto_goTypes = []any{
 var file_sf_tron_type_v1_block_proto_depIdxs = []int32{
 	2, // 0: sf.tron.type.v1.Block.header:type_name -> sf.tron.type.v1.BlockHeader
 	3, // 1: sf.tron.type.v1.Block.transactions:type_name -> sf.tron.type.v1.Transaction
-	4, // 2: sf.tron.type.v1.Transaction.contracts:type_name -> sf.tron.type.v1.Contract
-	0, // 3: sf.tron.type.v1.Contract.type:type_name -> sf.tron.type.v1.Contract.ContractType
-	5, // 4: sf.tron.type.v1.Contract.parameter:type_name -> google.protobuf.Any
-	5, // [5:5] is the sub-list for method output_type
-	5, // [5:5] is the sub-list for method input_type
-	5, // [5:5] is the sub-list for extension type_name
-	5, // [5:5] is the sub-list for extension extendee
-	0, // [0:5] is the sub-list for field type_name
+	5, // 2: sf.tron.type.v1.Transaction.transaction_extention:type_name -> google.protobuf.Any
+	5, // 3: sf.tron.type.v1.Transaction.transaction_info:type_name -> google.protobuf.Any
+	4, // 4: sf.tron.type.v1.Transaction.contracts:type_name -> sf.tron.type.v1.Contract
+	0, // 5: sf.tron.type.v1.Contract.type:type_name -> sf.tron.type.v1.Contract.ContractType
+	5, // 6: sf.tron.type.v1.Contract.parameter:type_name -> google.protobuf.Any
+	7, // [7:7] is the sub-list for method output_type
+	7, // [7:7] is the sub-list for method input_type
+	7, // [7:7] is the sub-list for extension type_name
+	7, // [7:7] is the sub-list for extension extendee
+	0, // [0:7] is the sub-list for field type_name
 }
 
 func init() { file_sf_tron_type_v1_block_proto_init() }
