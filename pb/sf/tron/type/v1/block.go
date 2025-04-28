@@ -1,25 +1,35 @@
 package pbtron
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"time"
 )
 
 func (x *Block) GetFirehoseBlockID() string {
-	return x.BlockId
+	decoded, err := base64.StdEncoding.DecodeString(string(x.Id))
+	if err != nil {
+		return ""
+	}
+	return hex.EncodeToString(decoded)
 }
 
 func (x *Block) GetFirehoseBlockNumber() uint64 {
-	return x.BlockHeader.RawData.Number
+	return x.Header.Number
 }
 
 func (x *Block) GetFirehoseBlockParentID() string {
-	return string(x.BlockHeader.RawData.ParentHash)
+	decoded, err := base64.StdEncoding.DecodeString(string(x.Header.ParentHash))
+	if err != nil {
+		return ""
+	}
+	return hex.EncodeToString(decoded)
 }
 
 func (x *Block) GetFirehoseBlockParentNumber() uint64 {
-	return x.BlockHeader.RawData.Number - 1
+	return x.Header.ParentNumber
 }
 
 func (x *Block) GetFirehoseBlockTime() time.Time {
-	return time.Unix(x.BlockHeader.RawData.Timestamp/1000, 0)
+	return time.Unix(x.Header.Timestamp/1000, 0)
 }

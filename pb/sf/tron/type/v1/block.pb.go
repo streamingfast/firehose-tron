@@ -9,6 +9,7 @@ package pbtron
 import (
 	protoreflect "google.golang.org/protobuf/reflect/protoreflect"
 	protoimpl "google.golang.org/protobuf/runtime/protoimpl"
+	anypb "google.golang.org/protobuf/types/known/anypb"
 	reflect "reflect"
 	sync "sync"
 	unsafe "unsafe"
@@ -21,11 +22,177 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
+type Contract_ContractType int32
+
+const (
+	Contract_UNKNOWN                   Contract_ContractType = 0
+	Contract_ACCOUNT_CREATE            Contract_ContractType = 1
+	Contract_TRANSFER                  Contract_ContractType = 2
+	Contract_TRANSFER_ASSET            Contract_ContractType = 3
+	Contract_VOTE_ASSET                Contract_ContractType = 4
+	Contract_VOTE_WITNESS              Contract_ContractType = 5
+	Contract_WITNESS_CREATE            Contract_ContractType = 6
+	Contract_ASSET_ISSUE               Contract_ContractType = 7
+	Contract_WITNESS_UPDATE            Contract_ContractType = 8
+	Contract_PARTICIPATE_ASSET_ISSUE   Contract_ContractType = 9
+	Contract_ACCOUNT_UPDATE            Contract_ContractType = 10
+	Contract_FREEZE_BALANCE            Contract_ContractType = 11
+	Contract_UNFREEZE_BALANCE          Contract_ContractType = 12
+	Contract_WITHDRAW_BALANCE          Contract_ContractType = 13
+	Contract_UNFREEZE_ASSET            Contract_ContractType = 14
+	Contract_UPDATE_ASSET              Contract_ContractType = 15
+	Contract_PROPOSAL_CREATE           Contract_ContractType = 16
+	Contract_PROPOSAL_APPROVE          Contract_ContractType = 17
+	Contract_PROPOSAL_DELETE           Contract_ContractType = 18
+	Contract_SET_ACCOUNT_ID            Contract_ContractType = 19
+	Contract_CUSTOM                    Contract_ContractType = 20
+	Contract_CREATE_SMART_CONTRACT     Contract_ContractType = 30
+	Contract_TRIGGER_SMART_CONTRACT    Contract_ContractType = 31
+	Contract_GET_CONTRACT              Contract_ContractType = 32
+	Contract_UPDATE_SETTING            Contract_ContractType = 33
+	Contract_EXCHANGE_CREATE           Contract_ContractType = 41
+	Contract_EXCHANGE_INJECT           Contract_ContractType = 42
+	Contract_EXCHANGE_WITHDRAW         Contract_ContractType = 43
+	Contract_EXCHANGE_TRANSACTION      Contract_ContractType = 44
+	Contract_UPDATE_ENERGY_LIMIT       Contract_ContractType = 45
+	Contract_ACCOUNT_PERMISSION_UPDATE Contract_ContractType = 46
+	Contract_CLEAR_ABI                 Contract_ContractType = 48
+	Contract_UPDATE_BROKERAGE          Contract_ContractType = 49
+	Contract_SHIELDED_TRANSFER         Contract_ContractType = 51
+	Contract_MARKET_SELL_ASSET         Contract_ContractType = 52
+	Contract_MARKET_CANCEL_ORDER       Contract_ContractType = 53
+	Contract_FREEZE_BALANCE_V2         Contract_ContractType = 54
+	Contract_UNFREEZE_BALANCE_V2       Contract_ContractType = 55
+	Contract_WITHDRAW_EXPIRE_UNFREEZE  Contract_ContractType = 56
+	Contract_DELEGATE_RESOURCE         Contract_ContractType = 57
+	Contract_UNDELEGATE_RESOURCE       Contract_ContractType = 58
+	Contract_CANCEL_ALL_UNFREEZE_V2    Contract_ContractType = 59
+)
+
+// Enum value maps for Contract_ContractType.
+var (
+	Contract_ContractType_name = map[int32]string{
+		0:  "UNKNOWN",
+		1:  "ACCOUNT_CREATE",
+		2:  "TRANSFER",
+		3:  "TRANSFER_ASSET",
+		4:  "VOTE_ASSET",
+		5:  "VOTE_WITNESS",
+		6:  "WITNESS_CREATE",
+		7:  "ASSET_ISSUE",
+		8:  "WITNESS_UPDATE",
+		9:  "PARTICIPATE_ASSET_ISSUE",
+		10: "ACCOUNT_UPDATE",
+		11: "FREEZE_BALANCE",
+		12: "UNFREEZE_BALANCE",
+		13: "WITHDRAW_BALANCE",
+		14: "UNFREEZE_ASSET",
+		15: "UPDATE_ASSET",
+		16: "PROPOSAL_CREATE",
+		17: "PROPOSAL_APPROVE",
+		18: "PROPOSAL_DELETE",
+		19: "SET_ACCOUNT_ID",
+		20: "CUSTOM",
+		30: "CREATE_SMART_CONTRACT",
+		31: "TRIGGER_SMART_CONTRACT",
+		32: "GET_CONTRACT",
+		33: "UPDATE_SETTING",
+		41: "EXCHANGE_CREATE",
+		42: "EXCHANGE_INJECT",
+		43: "EXCHANGE_WITHDRAW",
+		44: "EXCHANGE_TRANSACTION",
+		45: "UPDATE_ENERGY_LIMIT",
+		46: "ACCOUNT_PERMISSION_UPDATE",
+		48: "CLEAR_ABI",
+		49: "UPDATE_BROKERAGE",
+		51: "SHIELDED_TRANSFER",
+		52: "MARKET_SELL_ASSET",
+		53: "MARKET_CANCEL_ORDER",
+		54: "FREEZE_BALANCE_V2",
+		55: "UNFREEZE_BALANCE_V2",
+		56: "WITHDRAW_EXPIRE_UNFREEZE",
+		57: "DELEGATE_RESOURCE",
+		58: "UNDELEGATE_RESOURCE",
+		59: "CANCEL_ALL_UNFREEZE_V2",
+	}
+	Contract_ContractType_value = map[string]int32{
+		"UNKNOWN":                   0,
+		"ACCOUNT_CREATE":            1,
+		"TRANSFER":                  2,
+		"TRANSFER_ASSET":            3,
+		"VOTE_ASSET":                4,
+		"VOTE_WITNESS":              5,
+		"WITNESS_CREATE":            6,
+		"ASSET_ISSUE":               7,
+		"WITNESS_UPDATE":            8,
+		"PARTICIPATE_ASSET_ISSUE":   9,
+		"ACCOUNT_UPDATE":            10,
+		"FREEZE_BALANCE":            11,
+		"UNFREEZE_BALANCE":          12,
+		"WITHDRAW_BALANCE":          13,
+		"UNFREEZE_ASSET":            14,
+		"UPDATE_ASSET":              15,
+		"PROPOSAL_CREATE":           16,
+		"PROPOSAL_APPROVE":          17,
+		"PROPOSAL_DELETE":           18,
+		"SET_ACCOUNT_ID":            19,
+		"CUSTOM":                    20,
+		"CREATE_SMART_CONTRACT":     30,
+		"TRIGGER_SMART_CONTRACT":    31,
+		"GET_CONTRACT":              32,
+		"UPDATE_SETTING":            33,
+		"EXCHANGE_CREATE":           41,
+		"EXCHANGE_INJECT":           42,
+		"EXCHANGE_WITHDRAW":         43,
+		"EXCHANGE_TRANSACTION":      44,
+		"UPDATE_ENERGY_LIMIT":       45,
+		"ACCOUNT_PERMISSION_UPDATE": 46,
+		"CLEAR_ABI":                 48,
+		"UPDATE_BROKERAGE":          49,
+		"SHIELDED_TRANSFER":         51,
+		"MARKET_SELL_ASSET":         52,
+		"MARKET_CANCEL_ORDER":       53,
+		"FREEZE_BALANCE_V2":         54,
+		"UNFREEZE_BALANCE_V2":       55,
+		"WITHDRAW_EXPIRE_UNFREEZE":  56,
+		"DELEGATE_RESOURCE":         57,
+		"UNDELEGATE_RESOURCE":       58,
+		"CANCEL_ALL_UNFREEZE_V2":    59,
+	}
+)
+
+func (x Contract_ContractType) Enum() *Contract_ContractType {
+	p := new(Contract_ContractType)
+	*p = x
+	return p
+}
+
+func (x Contract_ContractType) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (Contract_ContractType) Descriptor() protoreflect.EnumDescriptor {
+	return file_sf_tron_type_v1_block_proto_enumTypes[0].Descriptor()
+}
+
+func (Contract_ContractType) Type() protoreflect.EnumType {
+	return &file_sf_tron_type_v1_block_proto_enumTypes[0]
+}
+
+func (x Contract_ContractType) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use Contract_ContractType.Descriptor instead.
+func (Contract_ContractType) EnumDescriptor() ([]byte, []int) {
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{3, 0}
+}
+
 // Block represents a Tron block from the RPC response
 type Block struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	BlockId       string                 `protobuf:"bytes,1,opt,name=block_id,json=blockId,proto3" json:"block_id,omitempty"`
-	BlockHeader   *BlockHeader           `protobuf:"bytes,2,opt,name=block_header,json=blockHeader,proto3" json:"block_header,omitempty"`
+	Id            []byte                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Header        *BlockHeader           `protobuf:"bytes,2,opt,name=header,proto3" json:"header,omitempty"`
 	Transactions  []*Transaction         `protobuf:"bytes,3,rep,name=transactions,proto3" json:"transactions,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -61,16 +228,16 @@ func (*Block) Descriptor() ([]byte, []int) {
 	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{0}
 }
 
-func (x *Block) GetBlockId() string {
+func (x *Block) GetId() []byte {
 	if x != nil {
-		return x.BlockId
+		return x.Id
 	}
-	return ""
+	return nil
 }
 
-func (x *Block) GetBlockHeader() *BlockHeader {
+func (x *Block) GetHeader() *BlockHeader {
 	if x != nil {
-		return x.BlockHeader
+		return x.Header
 	}
 	return nil
 }
@@ -85,8 +252,14 @@ func (x *Block) GetTransactions() []*Transaction {
 // BlockHeader represents the block header from the RPC response
 type BlockHeader struct {
 	state            protoimpl.MessageState `protogen:"open.v1"`
-	RawData          *RawData               `protobuf:"bytes,1,opt,name=raw_data,json=rawData,proto3" json:"raw_data,omitempty"`
-	WitnessSignature []byte                 `protobuf:"bytes,2,opt,name=witness_signature,json=witnessSignature,proto3" json:"witness_signature,omitempty"`
+	Number           uint64                 `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
+	TxTrieRoot       []byte                 `protobuf:"bytes,2,opt,name=tx_trie_root,json=txTrieRoot,proto3" json:"tx_trie_root,omitempty"`
+	WitnessAddress   []byte                 `protobuf:"bytes,3,opt,name=witness_address,json=witnessAddress,proto3" json:"witness_address,omitempty"`
+	ParentNumber     uint64                 `protobuf:"varint,4,opt,name=parent_number,json=parentNumber,proto3" json:"parent_number,omitempty"`
+	ParentHash       []byte                 `protobuf:"bytes,5,opt,name=parent_hash,json=parentHash,proto3" json:"parent_hash,omitempty"`
+	Version          uint32                 `protobuf:"varint,6,opt,name=version,proto3" json:"version,omitempty"`
+	Timestamp        int64                  `protobuf:"varint,7,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	WitnessSignature []byte                 `protobuf:"bytes,9,opt,name=witness_signature,json=witnessSignature,proto3" json:"witness_signature,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -121,11 +294,53 @@ func (*BlockHeader) Descriptor() ([]byte, []int) {
 	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{1}
 }
 
-func (x *BlockHeader) GetRawData() *RawData {
+func (x *BlockHeader) GetNumber() uint64 {
 	if x != nil {
-		return x.RawData
+		return x.Number
+	}
+	return 0
+}
+
+func (x *BlockHeader) GetTxTrieRoot() []byte {
+	if x != nil {
+		return x.TxTrieRoot
 	}
 	return nil
+}
+
+func (x *BlockHeader) GetWitnessAddress() []byte {
+	if x != nil {
+		return x.WitnessAddress
+	}
+	return nil
+}
+
+func (x *BlockHeader) GetParentNumber() uint64 {
+	if x != nil {
+		return x.ParentNumber
+	}
+	return 0
+}
+
+func (x *BlockHeader) GetParentHash() []byte {
+	if x != nil {
+		return x.ParentHash
+	}
+	return nil
+}
+
+func (x *BlockHeader) GetVersion() uint32 {
+	if x != nil {
+		return x.Version
+	}
+	return 0
+}
+
+func (x *BlockHeader) GetTimestamp() int64 {
+	if x != nil {
+		return x.Timestamp
+	}
+	return 0
 }
 
 func (x *BlockHeader) GetWitnessSignature() []byte {
@@ -135,106 +350,28 @@ func (x *BlockHeader) GetWitnessSignature() []byte {
 	return nil
 }
 
-// RawData contains the core block data from the RPC response
-type RawData struct {
-	state          protoimpl.MessageState `protogen:"open.v1"`
-	Number         uint64                 `protobuf:"varint,1,opt,name=number,proto3" json:"number,omitempty"`
-	TxTrieRoot     []byte                 `protobuf:"bytes,2,opt,name=tx_trie_root,json=txTrieRoot,proto3" json:"tx_trie_root,omitempty"`
-	WitnessAddress []byte                 `protobuf:"bytes,3,opt,name=witness_address,json=witnessAddress,proto3" json:"witness_address,omitempty"`
-	ParentHash     []byte                 `protobuf:"bytes,4,opt,name=parent_hash,json=parentHash,proto3" json:"parent_hash,omitempty"`
-	Version        uint32                 `protobuf:"varint,5,opt,name=version,proto3" json:"version,omitempty"`
-	Timestamp      int64                  `protobuf:"varint,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
-}
-
-func (x *RawData) Reset() {
-	*x = RawData{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[2]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RawData) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RawData) ProtoMessage() {}
-
-func (x *RawData) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[2]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RawData.ProtoReflect.Descriptor instead.
-func (*RawData) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{2}
-}
-
-func (x *RawData) GetNumber() uint64 {
-	if x != nil {
-		return x.Number
-	}
-	return 0
-}
-
-func (x *RawData) GetTxTrieRoot() []byte {
-	if x != nil {
-		return x.TxTrieRoot
-	}
-	return nil
-}
-
-func (x *RawData) GetWitnessAddress() []byte {
-	if x != nil {
-		return x.WitnessAddress
-	}
-	return nil
-}
-
-func (x *RawData) GetParentHash() []byte {
-	if x != nil {
-		return x.ParentHash
-	}
-	return nil
-}
-
-func (x *RawData) GetVersion() uint32 {
-	if x != nil {
-		return x.Version
-	}
-	return 0
-}
-
-func (x *RawData) GetTimestamp() int64 {
-	if x != nil {
-		return x.Timestamp
-	}
-	return 0
-}
-
-// Transaction represents a Tron transaction from the RPC response
+// Transaction represents a flattened Tron transaction
 type Transaction struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Ret           []*TransactionRet      `protobuf:"bytes,1,rep,name=ret,proto3" json:"ret,omitempty"`
-	Signature     [][]byte               `protobuf:"bytes,2,rep,name=signature,proto3" json:"signature,omitempty"`
-	TxId          string                 `protobuf:"bytes,3,opt,name=tx_id,json=txId,proto3" json:"tx_id,omitempty"`
-	RawData       *RawTransactionData    `protobuf:"bytes,4,opt,name=raw_data,json=rawData,proto3" json:"raw_data,omitempty"`
-	RawDataHex    []byte                 `protobuf:"bytes,5,opt,name=raw_data_hex,json=rawDataHex,proto3" json:"raw_data_hex,omitempty"`
+	state protoimpl.MessageState `protogen:"open.v1"`
+	// Basic transaction info
+	Txid          []byte   `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	Signature     [][]byte `protobuf:"bytes,2,rep,name=signature,proto3" json:"signature,omitempty"`
+	Result        bool     `protobuf:"varint,3,opt,name=result,proto3" json:"result,omitempty"`
+	ResultMessage string   `protobuf:"bytes,4,opt,name=result_message,json=resultMessage,proto3" json:"result_message,omitempty"`
+	// Raw data fields (flattened)
+	RefBlockBytes []byte `protobuf:"bytes,5,opt,name=ref_block_bytes,json=refBlockBytes,proto3" json:"ref_block_bytes,omitempty"`
+	RefBlockHash  []byte `protobuf:"bytes,6,opt,name=ref_block_hash,json=refBlockHash,proto3" json:"ref_block_hash,omitempty"`
+	Expiration    int64  `protobuf:"varint,7,opt,name=expiration,proto3" json:"expiration,omitempty"`
+	Timestamp     int64  `protobuf:"varint,8,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	// Contract info
+	Contracts     []*Contract `protobuf:"bytes,9,rep,name=contracts,proto3" json:"contracts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Transaction) Reset() {
 	*x = Transaction{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[3]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -246,7 +383,7 @@ func (x *Transaction) String() string {
 func (*Transaction) ProtoMessage() {}
 
 func (x *Transaction) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[3]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -259,12 +396,12 @@ func (x *Transaction) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Transaction.ProtoReflect.Descriptor instead.
 func (*Transaction) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{3}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{2}
 }
 
-func (x *Transaction) GetRet() []*TransactionRet {
+func (x *Transaction) GetTxid() []byte {
 	if x != nil {
-		return x.Ret
+		return x.Txid
 	}
 	return nil
 }
@@ -276,169 +413,70 @@ func (x *Transaction) GetSignature() [][]byte {
 	return nil
 }
 
-func (x *Transaction) GetTxId() string {
+func (x *Transaction) GetResult() bool {
 	if x != nil {
-		return x.TxId
+		return x.Result
+	}
+	return false
+}
+
+func (x *Transaction) GetResultMessage() string {
+	if x != nil {
+		return x.ResultMessage
 	}
 	return ""
 }
 
-func (x *Transaction) GetRawData() *RawTransactionData {
-	if x != nil {
-		return x.RawData
-	}
-	return nil
-}
-
-func (x *Transaction) GetRawDataHex() []byte {
-	if x != nil {
-		return x.RawDataHex
-	}
-	return nil
-}
-
-// TransactionRet represents the transaction return value
-type TransactionRet struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	ContractRet   string                 `protobuf:"bytes,1,opt,name=contract_ret,json=contractRet,proto3" json:"contract_ret,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *TransactionRet) Reset() {
-	*x = TransactionRet{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[4]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TransactionRet) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TransactionRet) ProtoMessage() {}
-
-func (x *TransactionRet) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[4]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TransactionRet.ProtoReflect.Descriptor instead.
-func (*TransactionRet) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{4}
-}
-
-func (x *TransactionRet) GetContractRet() string {
-	if x != nil {
-		return x.ContractRet
-	}
-	return ""
-}
-
-// RawTransactionData contains the raw transaction data from the RPC response
-type RawTransactionData struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Contract      []*Contract            `protobuf:"bytes,1,rep,name=contract,proto3" json:"contract,omitempty"`
-	RefBlockBytes []byte                 `protobuf:"bytes,2,opt,name=ref_block_bytes,json=refBlockBytes,proto3" json:"ref_block_bytes,omitempty"`
-	RefBlockHash  []byte                 `protobuf:"bytes,3,opt,name=ref_block_hash,json=refBlockHash,proto3" json:"ref_block_hash,omitempty"`
-	Expiration    int64                  `protobuf:"varint,4,opt,name=expiration,proto3" json:"expiration,omitempty"`
-	Timestamp     int64                  `protobuf:"varint,5,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
-	FeeLimit      int64                  `protobuf:"varint,6,opt,name=fee_limit,json=feeLimit,proto3" json:"fee_limit,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RawTransactionData) Reset() {
-	*x = RawTransactionData{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[5]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RawTransactionData) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RawTransactionData) ProtoMessage() {}
-
-func (x *RawTransactionData) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[5]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RawTransactionData.ProtoReflect.Descriptor instead.
-func (*RawTransactionData) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{5}
-}
-
-func (x *RawTransactionData) GetContract() []*Contract {
-	if x != nil {
-		return x.Contract
-	}
-	return nil
-}
-
-func (x *RawTransactionData) GetRefBlockBytes() []byte {
+func (x *Transaction) GetRefBlockBytes() []byte {
 	if x != nil {
 		return x.RefBlockBytes
 	}
 	return nil
 }
 
-func (x *RawTransactionData) GetRefBlockHash() []byte {
+func (x *Transaction) GetRefBlockHash() []byte {
 	if x != nil {
 		return x.RefBlockHash
 	}
 	return nil
 }
 
-func (x *RawTransactionData) GetExpiration() int64 {
+func (x *Transaction) GetExpiration() int64 {
 	if x != nil {
 		return x.Expiration
 	}
 	return 0
 }
 
-func (x *RawTransactionData) GetTimestamp() int64 {
+func (x *Transaction) GetTimestamp() int64 {
 	if x != nil {
 		return x.Timestamp
 	}
 	return 0
 }
 
-func (x *RawTransactionData) GetFeeLimit() int64 {
+func (x *Transaction) GetContracts() []*Contract {
 	if x != nil {
-		return x.FeeLimit
+		return x.Contracts
 	}
-	return 0
+	return nil
 }
 
-// Contract represents a transaction contract from the RPC response
+// Contract represents a transaction contract
 type Contract struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
-	Type          string                 `protobuf:"bytes,1,opt,name=type,proto3" json:"type,omitempty"`
-	Parameter     *ContractParameter     `protobuf:"bytes,2,opt,name=parameter,proto3" json:"parameter,omitempty"`
+	Type          Contract_ContractType  `protobuf:"varint,1,opt,name=type,proto3,enum=sf.tron.type.v1.Contract_ContractType" json:"type,omitempty"`
+	Parameter     *anypb.Any             `protobuf:"bytes,2,opt,name=parameter,proto3" json:"parameter,omitempty"`
+	Provider      []byte                 `protobuf:"bytes,3,opt,name=provider,proto3" json:"provider,omitempty"`
+	ContractName  []byte                 `protobuf:"bytes,4,opt,name=contract_name,json=contractName,proto3" json:"contract_name,omitempty"`
+	PermissionId  int32                  `protobuf:"varint,5,opt,name=permission_id,json=permissionId,proto3" json:"permission_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *Contract) Reset() {
 	*x = Contract{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[6]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -450,7 +488,7 @@ func (x *Contract) String() string {
 func (*Contract) ProtoMessage() {}
 
 func (x *Contract) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[6]
+	mi := &file_sf_tron_type_v1_block_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -463,526 +501,40 @@ func (x *Contract) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Contract.ProtoReflect.Descriptor instead.
 func (*Contract) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{6}
+	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{3}
 }
 
-func (x *Contract) GetType() string {
+func (x *Contract) GetType() Contract_ContractType {
 	if x != nil {
 		return x.Type
 	}
-	return ""
+	return Contract_UNKNOWN
 }
 
-func (x *Contract) GetParameter() *ContractParameter {
+func (x *Contract) GetParameter() *anypb.Any {
 	if x != nil {
 		return x.Parameter
 	}
 	return nil
 }
 
-// ContractParameter represents the contract parameter from the RPC response
-type ContractParameter struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	TypeUrl       string                 `protobuf:"bytes,1,opt,name=type_url,json=typeUrl,proto3" json:"type_url,omitempty"`
-	Value         *ContractValue         `protobuf:"bytes,2,opt,name=value,proto3" json:"value,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *ContractParameter) Reset() {
-	*x = ContractParameter{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[7]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ContractParameter) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ContractParameter) ProtoMessage() {}
-
-func (x *ContractParameter) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[7]
+func (x *Contract) GetProvider() []byte {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ContractParameter.ProtoReflect.Descriptor instead.
-func (*ContractParameter) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{7}
-}
-
-func (x *ContractParameter) GetTypeUrl() string {
-	if x != nil {
-		return x.TypeUrl
-	}
-	return ""
-}
-
-func (x *ContractParameter) GetValue() *ContractValue {
-	if x != nil {
-		return x.Value
+		return x.Provider
 	}
 	return nil
 }
 
-// ContractValue represents the contract parameter value
-type ContractValue struct {
-	state           protoimpl.MessageState `protogen:"open.v1"`
-	Data            []byte                 `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
-	OwnerAddress    []byte                 `protobuf:"bytes,2,opt,name=owner_address,json=ownerAddress,proto3" json:"owner_address,omitempty"`
-	ContractAddress []byte                 `protobuf:"bytes,3,opt,name=contract_address,json=contractAddress,proto3" json:"contract_address,omitempty"`
-	CallValue       int64                  `protobuf:"varint,4,opt,name=call_value,json=callValue,proto3" json:"call_value,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
-}
-
-func (x *ContractValue) Reset() {
-	*x = ContractValue{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[8]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *ContractValue) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*ContractValue) ProtoMessage() {}
-
-func (x *ContractValue) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[8]
+func (x *Contract) GetContractName() []byte {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use ContractValue.ProtoReflect.Descriptor instead.
-func (*ContractValue) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{8}
-}
-
-func (x *ContractValue) GetData() []byte {
-	if x != nil {
-		return x.Data
+		return x.ContractName
 	}
 	return nil
 }
 
-func (x *ContractValue) GetOwnerAddress() []byte {
+func (x *Contract) GetPermissionId() int32 {
 	if x != nil {
-		return x.OwnerAddress
-	}
-	return nil
-}
-
-func (x *ContractValue) GetContractAddress() []byte {
-	if x != nil {
-		return x.ContractAddress
-	}
-	return nil
-}
-
-func (x *ContractValue) GetCallValue() int64 {
-	if x != nil {
-		return x.CallValue
-	}
-	return 0
-}
-
-// TransactionInfo represents detailed transaction information from the RPC response
-type TransactionInfo struct {
-	state                protoimpl.MessageState `protogen:"open.v1"`
-	Log                  []*Log                 `protobuf:"bytes,1,rep,name=log,proto3" json:"log,omitempty"`
-	BlockNumber          uint64                 `protobuf:"varint,2,opt,name=block_number,json=blockNumber,proto3" json:"block_number,omitempty"`
-	ContractResult       []string               `protobuf:"bytes,3,rep,name=contract_result,json=contractResult,proto3" json:"contract_result,omitempty"`
-	BlockTimestamp       int64                  `protobuf:"varint,4,opt,name=block_timestamp,json=blockTimestamp,proto3" json:"block_timestamp,omitempty"`
-	Receipt              *Receipt               `protobuf:"bytes,5,opt,name=receipt,proto3" json:"receipt,omitempty"`
-	Id                   string                 `protobuf:"bytes,6,opt,name=id,proto3" json:"id,omitempty"`
-	ContractAddress      []byte                 `protobuf:"bytes,7,opt,name=contract_address,json=contractAddress,proto3" json:"contract_address,omitempty"`
-	InternalTransactions []*InternalTransaction `protobuf:"bytes,8,rep,name=internal_transactions,json=internalTransactions,proto3" json:"internal_transactions,omitempty"`
-	Fee                  int64                  `protobuf:"varint,9,opt,name=fee,proto3" json:"fee,omitempty"`
-	unknownFields        protoimpl.UnknownFields
-	sizeCache            protoimpl.SizeCache
-}
-
-func (x *TransactionInfo) Reset() {
-	*x = TransactionInfo{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[9]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *TransactionInfo) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*TransactionInfo) ProtoMessage() {}
-
-func (x *TransactionInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[9]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use TransactionInfo.ProtoReflect.Descriptor instead.
-func (*TransactionInfo) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{9}
-}
-
-func (x *TransactionInfo) GetLog() []*Log {
-	if x != nil {
-		return x.Log
-	}
-	return nil
-}
-
-func (x *TransactionInfo) GetBlockNumber() uint64 {
-	if x != nil {
-		return x.BlockNumber
-	}
-	return 0
-}
-
-func (x *TransactionInfo) GetContractResult() []string {
-	if x != nil {
-		return x.ContractResult
-	}
-	return nil
-}
-
-func (x *TransactionInfo) GetBlockTimestamp() int64 {
-	if x != nil {
-		return x.BlockTimestamp
-	}
-	return 0
-}
-
-func (x *TransactionInfo) GetReceipt() *Receipt {
-	if x != nil {
-		return x.Receipt
-	}
-	return nil
-}
-
-func (x *TransactionInfo) GetId() string {
-	if x != nil {
-		return x.Id
-	}
-	return ""
-}
-
-func (x *TransactionInfo) GetContractAddress() []byte {
-	if x != nil {
-		return x.ContractAddress
-	}
-	return nil
-}
-
-func (x *TransactionInfo) GetInternalTransactions() []*InternalTransaction {
-	if x != nil {
-		return x.InternalTransactions
-	}
-	return nil
-}
-
-func (x *TransactionInfo) GetFee() int64 {
-	if x != nil {
-		return x.Fee
-	}
-	return 0
-}
-
-// Log represents a transaction log from the RPC response
-type Log struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Address       []byte                 `protobuf:"bytes,1,opt,name=address,proto3" json:"address,omitempty"`
-	Data          []byte                 `protobuf:"bytes,2,opt,name=data,proto3" json:"data,omitempty"`
-	Topics        [][]byte               `protobuf:"bytes,3,rep,name=topics,proto3" json:"topics,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *Log) Reset() {
-	*x = Log{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[10]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Log) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Log) ProtoMessage() {}
-
-func (x *Log) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[10]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Log.ProtoReflect.Descriptor instead.
-func (*Log) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{10}
-}
-
-func (x *Log) GetAddress() []byte {
-	if x != nil {
-		return x.Address
-	}
-	return nil
-}
-
-func (x *Log) GetData() []byte {
-	if x != nil {
-		return x.Data
-	}
-	return nil
-}
-
-func (x *Log) GetTopics() [][]byte {
-	if x != nil {
-		return x.Topics
-	}
-	return nil
-}
-
-// Receipt represents the transaction receipt from the RPC response
-type Receipt struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	Result            string                 `protobuf:"bytes,1,opt,name=result,proto3" json:"result,omitempty"`
-	EnergyUsage       int64                  `protobuf:"varint,2,opt,name=energy_usage,json=energyUsage,proto3" json:"energy_usage,omitempty"`
-	EnergyFee         int64                  `protobuf:"varint,3,opt,name=energy_fee,json=energyFee,proto3" json:"energy_fee,omitempty"`
-	OriginEnergyUsage int64                  `protobuf:"varint,4,opt,name=origin_energy_usage,json=originEnergyUsage,proto3" json:"origin_energy_usage,omitempty"`
-	EnergyUsageTotal  int64                  `protobuf:"varint,5,opt,name=energy_usage_total,json=energyUsageTotal,proto3" json:"energy_usage_total,omitempty"`
-	NetUsage          int64                  `protobuf:"varint,6,opt,name=net_usage,json=netUsage,proto3" json:"net_usage,omitempty"`
-	NetFee            int64                  `protobuf:"varint,7,opt,name=net_fee,json=netFee,proto3" json:"net_fee,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *Receipt) Reset() {
-	*x = Receipt{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[11]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *Receipt) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*Receipt) ProtoMessage() {}
-
-func (x *Receipt) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[11]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use Receipt.ProtoReflect.Descriptor instead.
-func (*Receipt) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{11}
-}
-
-func (x *Receipt) GetResult() string {
-	if x != nil {
-		return x.Result
-	}
-	return ""
-}
-
-func (x *Receipt) GetEnergyUsage() int64 {
-	if x != nil {
-		return x.EnergyUsage
-	}
-	return 0
-}
-
-func (x *Receipt) GetEnergyFee() int64 {
-	if x != nil {
-		return x.EnergyFee
-	}
-	return 0
-}
-
-func (x *Receipt) GetOriginEnergyUsage() int64 {
-	if x != nil {
-		return x.OriginEnergyUsage
-	}
-	return 0
-}
-
-func (x *Receipt) GetEnergyUsageTotal() int64 {
-	if x != nil {
-		return x.EnergyUsageTotal
-	}
-	return 0
-}
-
-func (x *Receipt) GetNetUsage() int64 {
-	if x != nil {
-		return x.NetUsage
-	}
-	return 0
-}
-
-func (x *Receipt) GetNetFee() int64 {
-	if x != nil {
-		return x.NetFee
-	}
-	return 0
-}
-
-// InternalTransaction represents an internal transaction from the RPC response
-type InternalTransaction struct {
-	state             protoimpl.MessageState `protogen:"open.v1"`
-	CallerAddress     []byte                 `protobuf:"bytes,1,opt,name=caller_address,json=callerAddress,proto3" json:"caller_address,omitempty"`
-	Note              []byte                 `protobuf:"bytes,2,opt,name=note,proto3" json:"note,omitempty"`
-	TransferToAddress []byte                 `protobuf:"bytes,3,opt,name=transfer_to_address,json=transferToAddress,proto3" json:"transfer_to_address,omitempty"`
-	CallValueInfo     []*CallValueInfo       `protobuf:"bytes,4,rep,name=call_value_info,json=callValueInfo,proto3" json:"call_value_info,omitempty"`
-	Hash              []byte                 `protobuf:"bytes,5,opt,name=hash,proto3" json:"hash,omitempty"`
-	unknownFields     protoimpl.UnknownFields
-	sizeCache         protoimpl.SizeCache
-}
-
-func (x *InternalTransaction) Reset() {
-	*x = InternalTransaction{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *InternalTransaction) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*InternalTransaction) ProtoMessage() {}
-
-func (x *InternalTransaction) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[12]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use InternalTransaction.ProtoReflect.Descriptor instead.
-func (*InternalTransaction) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *InternalTransaction) GetCallerAddress() []byte {
-	if x != nil {
-		return x.CallerAddress
-	}
-	return nil
-}
-
-func (x *InternalTransaction) GetNote() []byte {
-	if x != nil {
-		return x.Note
-	}
-	return nil
-}
-
-func (x *InternalTransaction) GetTransferToAddress() []byte {
-	if x != nil {
-		return x.TransferToAddress
-	}
-	return nil
-}
-
-func (x *InternalTransaction) GetCallValueInfo() []*CallValueInfo {
-	if x != nil {
-		return x.CallValueInfo
-	}
-	return nil
-}
-
-func (x *InternalTransaction) GetHash() []byte {
-	if x != nil {
-		return x.Hash
-	}
-	return nil
-}
-
-// CallValueInfo represents call value information from the RPC response
-type CallValueInfo struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	CallValue     int64                  `protobuf:"varint,1,opt,name=call_value,json=callValue,proto3" json:"call_value,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *CallValueInfo) Reset() {
-	*x = CallValueInfo{}
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[13]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *CallValueInfo) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*CallValueInfo) ProtoMessage() {}
-
-func (x *CallValueInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_sf_tron_type_v1_block_proto_msgTypes[13]
-	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
-	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use CallValueInfo.ProtoReflect.Descriptor instead.
-func (*CallValueInfo) Descriptor() ([]byte, []int) {
-	return file_sf_tron_type_v1_block_proto_rawDescGZIP(), []int{13}
-}
-
-func (x *CallValueInfo) GetCallValue() int64 {
-	if x != nil {
-		return x.CallValue
+		return x.PermissionId
 	}
 	return 0
 }
@@ -991,85 +543,86 @@ var File_sf_tron_type_v1_block_proto protoreflect.FileDescriptor
 
 const file_sf_tron_type_v1_block_proto_rawDesc = "" +
 	"\n" +
-	"\x1bsf/tron/type/v1/block.proto\x12\x0fsf.tron.type.v1\"\xa5\x01\n" +
-	"\x05Block\x12\x19\n" +
-	"\bblock_id\x18\x01 \x01(\tR\ablockId\x12?\n" +
-	"\fblock_header\x18\x02 \x01(\v2\x1c.sf.tron.type.v1.BlockHeaderR\vblockHeader\x12@\n" +
-	"\ftransactions\x18\x03 \x03(\v2\x1c.sf.tron.type.v1.TransactionR\ftransactions\"o\n" +
-	"\vBlockHeader\x123\n" +
-	"\braw_data\x18\x01 \x01(\v2\x18.sf.tron.type.v1.RawDataR\arawData\x12+\n" +
-	"\x11witness_signature\x18\x02 \x01(\fR\x10witnessSignature\"\xc5\x01\n" +
-	"\aRawData\x12\x16\n" +
+	"\x1bsf/tron/type/v1/block.proto\x12\x0fsf.tron.type.v1\x1a\x19google/protobuf/any.proto\"\x8f\x01\n" +
+	"\x05Block\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\fR\x02id\x124\n" +
+	"\x06header\x18\x02 \x01(\v2\x1c.sf.tron.type.v1.BlockHeaderR\x06header\x12@\n" +
+	"\ftransactions\x18\x03 \x03(\v2\x1c.sf.tron.type.v1.TransactionR\ftransactions\"\x9b\x02\n" +
+	"\vBlockHeader\x12\x16\n" +
 	"\x06number\x18\x01 \x01(\x04R\x06number\x12 \n" +
 	"\ftx_trie_root\x18\x02 \x01(\fR\n" +
 	"txTrieRoot\x12'\n" +
-	"\x0fwitness_address\x18\x03 \x01(\fR\x0ewitnessAddress\x12\x1f\n" +
-	"\vparent_hash\x18\x04 \x01(\fR\n" +
+	"\x0fwitness_address\x18\x03 \x01(\fR\x0ewitnessAddress\x12#\n" +
+	"\rparent_number\x18\x04 \x01(\x04R\fparentNumber\x12\x1f\n" +
+	"\vparent_hash\x18\x05 \x01(\fR\n" +
 	"parentHash\x12\x18\n" +
-	"\aversion\x18\x05 \x01(\rR\aversion\x12\x1c\n" +
-	"\ttimestamp\x18\x06 \x01(\x03R\ttimestamp\"\xd5\x01\n" +
-	"\vTransaction\x121\n" +
-	"\x03ret\x18\x01 \x03(\v2\x1f.sf.tron.type.v1.TransactionRetR\x03ret\x12\x1c\n" +
-	"\tsignature\x18\x02 \x03(\fR\tsignature\x12\x13\n" +
-	"\x05tx_id\x18\x03 \x01(\tR\x04txId\x12>\n" +
-	"\braw_data\x18\x04 \x01(\v2#.sf.tron.type.v1.RawTransactionDataR\arawData\x12 \n" +
-	"\fraw_data_hex\x18\x05 \x01(\fR\n" +
-	"rawDataHex\"3\n" +
-	"\x0eTransactionRet\x12!\n" +
-	"\fcontract_ret\x18\x01 \x01(\tR\vcontractRet\"\xf4\x01\n" +
-	"\x12RawTransactionData\x125\n" +
-	"\bcontract\x18\x01 \x03(\v2\x19.sf.tron.type.v1.ContractR\bcontract\x12&\n" +
-	"\x0fref_block_bytes\x18\x02 \x01(\fR\rrefBlockBytes\x12$\n" +
-	"\x0eref_block_hash\x18\x03 \x01(\fR\frefBlockHash\x12\x1e\n" +
+	"\aversion\x18\x06 \x01(\rR\aversion\x12\x1c\n" +
+	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\x12+\n" +
+	"\x11witness_signature\x18\t \x01(\fR\x10witnessSignature\"\xc3\x02\n" +
+	"\vTransaction\x12\x12\n" +
+	"\x04txid\x18\x01 \x01(\fR\x04txid\x12\x1c\n" +
+	"\tsignature\x18\x02 \x03(\fR\tsignature\x12\x16\n" +
+	"\x06result\x18\x03 \x01(\bR\x06result\x12%\n" +
+	"\x0eresult_message\x18\x04 \x01(\tR\rresultMessage\x12&\n" +
+	"\x0fref_block_bytes\x18\x05 \x01(\fR\rrefBlockBytes\x12$\n" +
+	"\x0eref_block_hash\x18\x06 \x01(\fR\frefBlockHash\x12\x1e\n" +
 	"\n" +
-	"expiration\x18\x04 \x01(\x03R\n" +
+	"expiration\x18\a \x01(\x03R\n" +
 	"expiration\x12\x1c\n" +
-	"\ttimestamp\x18\x05 \x01(\x03R\ttimestamp\x12\x1b\n" +
-	"\tfee_limit\x18\x06 \x01(\x03R\bfeeLimit\"`\n" +
-	"\bContract\x12\x12\n" +
-	"\x04type\x18\x01 \x01(\tR\x04type\x12@\n" +
-	"\tparameter\x18\x02 \x01(\v2\".sf.tron.type.v1.ContractParameterR\tparameter\"d\n" +
-	"\x11ContractParameter\x12\x19\n" +
-	"\btype_url\x18\x01 \x01(\tR\atypeUrl\x124\n" +
-	"\x05value\x18\x02 \x01(\v2\x1e.sf.tron.type.v1.ContractValueR\x05value\"\x92\x01\n" +
-	"\rContractValue\x12\x12\n" +
-	"\x04data\x18\x01 \x01(\fR\x04data\x12#\n" +
-	"\rowner_address\x18\x02 \x01(\fR\fownerAddress\x12)\n" +
-	"\x10contract_address\x18\x03 \x01(\fR\x0fcontractAddress\x12\x1d\n" +
+	"\ttimestamp\x18\b \x01(\x03R\ttimestamp\x127\n" +
+	"\tcontracts\x18\t \x03(\v2\x19.sf.tron.type.v1.ContractR\tcontracts\"\xfc\b\n" +
+	"\bContract\x12:\n" +
+	"\x04type\x18\x01 \x01(\x0e2&.sf.tron.type.v1.Contract.ContractTypeR\x04type\x122\n" +
+	"\tparameter\x18\x02 \x01(\v2\x14.google.protobuf.AnyR\tparameter\x12\x1a\n" +
+	"\bprovider\x18\x03 \x01(\fR\bprovider\x12#\n" +
+	"\rcontract_name\x18\x04 \x01(\fR\fcontractName\x12#\n" +
+	"\rpermission_id\x18\x05 \x01(\x05R\fpermissionId\"\x99\a\n" +
+	"\fContractType\x12\v\n" +
+	"\aUNKNOWN\x10\x00\x12\x12\n" +
+	"\x0eACCOUNT_CREATE\x10\x01\x12\f\n" +
+	"\bTRANSFER\x10\x02\x12\x12\n" +
+	"\x0eTRANSFER_ASSET\x10\x03\x12\x0e\n" +
 	"\n" +
-	"call_value\x18\x04 \x01(\x03R\tcallValue\"\x8a\x03\n" +
-	"\x0fTransactionInfo\x12&\n" +
-	"\x03log\x18\x01 \x03(\v2\x14.sf.tron.type.v1.LogR\x03log\x12!\n" +
-	"\fblock_number\x18\x02 \x01(\x04R\vblockNumber\x12'\n" +
-	"\x0fcontract_result\x18\x03 \x03(\tR\x0econtractResult\x12'\n" +
-	"\x0fblock_timestamp\x18\x04 \x01(\x03R\x0eblockTimestamp\x122\n" +
-	"\areceipt\x18\x05 \x01(\v2\x18.sf.tron.type.v1.ReceiptR\areceipt\x12\x0e\n" +
-	"\x02id\x18\x06 \x01(\tR\x02id\x12)\n" +
-	"\x10contract_address\x18\a \x01(\fR\x0fcontractAddress\x12Y\n" +
-	"\x15internal_transactions\x18\b \x03(\v2$.sf.tron.type.v1.InternalTransactionR\x14internalTransactions\x12\x10\n" +
-	"\x03fee\x18\t \x01(\x03R\x03fee\"K\n" +
-	"\x03Log\x12\x18\n" +
-	"\aaddress\x18\x01 \x01(\fR\aaddress\x12\x12\n" +
-	"\x04data\x18\x02 \x01(\fR\x04data\x12\x16\n" +
-	"\x06topics\x18\x03 \x03(\fR\x06topics\"\xf7\x01\n" +
-	"\aReceipt\x12\x16\n" +
-	"\x06result\x18\x01 \x01(\tR\x06result\x12!\n" +
-	"\fenergy_usage\x18\x02 \x01(\x03R\venergyUsage\x12\x1d\n" +
+	"VOTE_ASSET\x10\x04\x12\x10\n" +
+	"\fVOTE_WITNESS\x10\x05\x12\x12\n" +
+	"\x0eWITNESS_CREATE\x10\x06\x12\x0f\n" +
+	"\vASSET_ISSUE\x10\a\x12\x12\n" +
+	"\x0eWITNESS_UPDATE\x10\b\x12\x1b\n" +
+	"\x17PARTICIPATE_ASSET_ISSUE\x10\t\x12\x12\n" +
+	"\x0eACCOUNT_UPDATE\x10\n" +
+	"\x12\x12\n" +
+	"\x0eFREEZE_BALANCE\x10\v\x12\x14\n" +
+	"\x10UNFREEZE_BALANCE\x10\f\x12\x14\n" +
+	"\x10WITHDRAW_BALANCE\x10\r\x12\x12\n" +
+	"\x0eUNFREEZE_ASSET\x10\x0e\x12\x10\n" +
+	"\fUPDATE_ASSET\x10\x0f\x12\x13\n" +
+	"\x0fPROPOSAL_CREATE\x10\x10\x12\x14\n" +
+	"\x10PROPOSAL_APPROVE\x10\x11\x12\x13\n" +
+	"\x0fPROPOSAL_DELETE\x10\x12\x12\x12\n" +
+	"\x0eSET_ACCOUNT_ID\x10\x13\x12\n" +
 	"\n" +
-	"energy_fee\x18\x03 \x01(\x03R\tenergyFee\x12.\n" +
-	"\x13origin_energy_usage\x18\x04 \x01(\x03R\x11originEnergyUsage\x12,\n" +
-	"\x12energy_usage_total\x18\x05 \x01(\x03R\x10energyUsageTotal\x12\x1b\n" +
-	"\tnet_usage\x18\x06 \x01(\x03R\bnetUsage\x12\x17\n" +
-	"\anet_fee\x18\a \x01(\x03R\x06netFee\"\xdc\x01\n" +
-	"\x13InternalTransaction\x12%\n" +
-	"\x0ecaller_address\x18\x01 \x01(\fR\rcallerAddress\x12\x12\n" +
-	"\x04note\x18\x02 \x01(\fR\x04note\x12.\n" +
-	"\x13transfer_to_address\x18\x03 \x01(\fR\x11transferToAddress\x12F\n" +
-	"\x0fcall_value_info\x18\x04 \x03(\v2\x1e.sf.tron.type.v1.CallValueInfoR\rcallValueInfo\x12\x12\n" +
-	"\x04hash\x18\x05 \x01(\fR\x04hash\".\n" +
-	"\rCallValueInfo\x12\x1d\n" +
-	"\n" +
-	"call_value\x18\x01 \x01(\x03R\tcallValueBBZ@github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1;pbtronb\x06proto3"
+	"\x06CUSTOM\x10\x14\x12\x19\n" +
+	"\x15CREATE_SMART_CONTRACT\x10\x1e\x12\x1a\n" +
+	"\x16TRIGGER_SMART_CONTRACT\x10\x1f\x12\x10\n" +
+	"\fGET_CONTRACT\x10 \x12\x12\n" +
+	"\x0eUPDATE_SETTING\x10!\x12\x13\n" +
+	"\x0fEXCHANGE_CREATE\x10)\x12\x13\n" +
+	"\x0fEXCHANGE_INJECT\x10*\x12\x15\n" +
+	"\x11EXCHANGE_WITHDRAW\x10+\x12\x18\n" +
+	"\x14EXCHANGE_TRANSACTION\x10,\x12\x17\n" +
+	"\x13UPDATE_ENERGY_LIMIT\x10-\x12\x1d\n" +
+	"\x19ACCOUNT_PERMISSION_UPDATE\x10.\x12\r\n" +
+	"\tCLEAR_ABI\x100\x12\x14\n" +
+	"\x10UPDATE_BROKERAGE\x101\x12\x15\n" +
+	"\x11SHIELDED_TRANSFER\x103\x12\x15\n" +
+	"\x11MARKET_SELL_ASSET\x104\x12\x17\n" +
+	"\x13MARKET_CANCEL_ORDER\x105\x12\x15\n" +
+	"\x11FREEZE_BALANCE_V2\x106\x12\x17\n" +
+	"\x13UNFREEZE_BALANCE_V2\x107\x12\x1c\n" +
+	"\x18WITHDRAW_EXPIRE_UNFREEZE\x108\x12\x15\n" +
+	"\x11DELEGATE_RESOURCE\x109\x12\x17\n" +
+	"\x13UNDELEGATE_RESOURCE\x10:\x12\x1a\n" +
+	"\x16CANCEL_ALL_UNFREEZE_V2\x10;BBZ@github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1;pbtronb\x06proto3"
 
 var (
 	file_sf_tron_type_v1_block_proto_rawDescOnce sync.Once
@@ -1083,41 +636,27 @@ func file_sf_tron_type_v1_block_proto_rawDescGZIP() []byte {
 	return file_sf_tron_type_v1_block_proto_rawDescData
 }
 
-var file_sf_tron_type_v1_block_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_sf_tron_type_v1_block_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_sf_tron_type_v1_block_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_sf_tron_type_v1_block_proto_goTypes = []any{
-	(*Block)(nil),               // 0: sf.tron.type.v1.Block
-	(*BlockHeader)(nil),         // 1: sf.tron.type.v1.BlockHeader
-	(*RawData)(nil),             // 2: sf.tron.type.v1.RawData
-	(*Transaction)(nil),         // 3: sf.tron.type.v1.Transaction
-	(*TransactionRet)(nil),      // 4: sf.tron.type.v1.TransactionRet
-	(*RawTransactionData)(nil),  // 5: sf.tron.type.v1.RawTransactionData
-	(*Contract)(nil),            // 6: sf.tron.type.v1.Contract
-	(*ContractParameter)(nil),   // 7: sf.tron.type.v1.ContractParameter
-	(*ContractValue)(nil),       // 8: sf.tron.type.v1.ContractValue
-	(*TransactionInfo)(nil),     // 9: sf.tron.type.v1.TransactionInfo
-	(*Log)(nil),                 // 10: sf.tron.type.v1.Log
-	(*Receipt)(nil),             // 11: sf.tron.type.v1.Receipt
-	(*InternalTransaction)(nil), // 12: sf.tron.type.v1.InternalTransaction
-	(*CallValueInfo)(nil),       // 13: sf.tron.type.v1.CallValueInfo
+	(Contract_ContractType)(0), // 0: sf.tron.type.v1.Contract.ContractType
+	(*Block)(nil),              // 1: sf.tron.type.v1.Block
+	(*BlockHeader)(nil),        // 2: sf.tron.type.v1.BlockHeader
+	(*Transaction)(nil),        // 3: sf.tron.type.v1.Transaction
+	(*Contract)(nil),           // 4: sf.tron.type.v1.Contract
+	(*anypb.Any)(nil),          // 5: google.protobuf.Any
 }
 var file_sf_tron_type_v1_block_proto_depIdxs = []int32{
-	1,  // 0: sf.tron.type.v1.Block.block_header:type_name -> sf.tron.type.v1.BlockHeader
-	3,  // 1: sf.tron.type.v1.Block.transactions:type_name -> sf.tron.type.v1.Transaction
-	2,  // 2: sf.tron.type.v1.BlockHeader.raw_data:type_name -> sf.tron.type.v1.RawData
-	4,  // 3: sf.tron.type.v1.Transaction.ret:type_name -> sf.tron.type.v1.TransactionRet
-	5,  // 4: sf.tron.type.v1.Transaction.raw_data:type_name -> sf.tron.type.v1.RawTransactionData
-	6,  // 5: sf.tron.type.v1.RawTransactionData.contract:type_name -> sf.tron.type.v1.Contract
-	7,  // 6: sf.tron.type.v1.Contract.parameter:type_name -> sf.tron.type.v1.ContractParameter
-	8,  // 7: sf.tron.type.v1.ContractParameter.value:type_name -> sf.tron.type.v1.ContractValue
-	10, // 8: sf.tron.type.v1.TransactionInfo.log:type_name -> sf.tron.type.v1.Log
-	11, // 9: sf.tron.type.v1.TransactionInfo.receipt:type_name -> sf.tron.type.v1.Receipt
-	12, // 10: sf.tron.type.v1.TransactionInfo.internal_transactions:type_name -> sf.tron.type.v1.InternalTransaction
-	13, // 11: sf.tron.type.v1.InternalTransaction.call_value_info:type_name -> sf.tron.type.v1.CallValueInfo
-	12, // [12:12] is the sub-list for method output_type
-	12, // [12:12] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	2, // 0: sf.tron.type.v1.Block.header:type_name -> sf.tron.type.v1.BlockHeader
+	3, // 1: sf.tron.type.v1.Block.transactions:type_name -> sf.tron.type.v1.Transaction
+	4, // 2: sf.tron.type.v1.Transaction.contracts:type_name -> sf.tron.type.v1.Contract
+	0, // 3: sf.tron.type.v1.Contract.type:type_name -> sf.tron.type.v1.Contract.ContractType
+	5, // 4: sf.tron.type.v1.Contract.parameter:type_name -> google.protobuf.Any
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_sf_tron_type_v1_block_proto_init() }
@@ -1130,13 +669,14 @@ func file_sf_tron_type_v1_block_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_sf_tron_type_v1_block_proto_rawDesc), len(file_sf_tron_type_v1_block_proto_rawDesc)),
-			NumEnums:      0,
-			NumMessages:   14,
+			NumEnums:      1,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
 		GoTypes:           file_sf_tron_type_v1_block_proto_goTypes,
 		DependencyIndexes: file_sf_tron_type_v1_block_proto_depIdxs,
+		EnumInfos:         file_sf_tron_type_v1_block_proto_enumTypes,
 		MessageInfos:      file_sf_tron_type_v1_block_proto_msgTypes,
 	}.Build()
 	File_sf_tron_type_v1_block_proto = out.File

@@ -8,11 +8,13 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"
+	"github.com/streamingfast/cli"
 	. "github.com/streamingfast/cli"
-	pbtron "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1"
 	"github.com/streamingfast/firehose-tron/rpc"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/proto"
 )
 
 var TestBlockCommand = Command(testBlockE,
@@ -20,7 +22,7 @@ var TestBlockCommand = Command(testBlockE,
 	"Test Tron block fetcher for a range of blocks",
 	ExactArgs(2),
 	Flags(func(flags *pflag.FlagSet) {
-		flags.String("rpc-endpoint", "https://api.trongrid.io", "Tron RPC endpoint")
+		flags.String("rpc-endpoint", "grpc.trongrid.io:50051", "Tron RPC endpoint")
 		flags.String("tron-api-key", "", "Tron API key for RPC access")
 		flags.String("state-dir", "/data/poller", "Directory to store state information")
 		flags.Duration("interval-between-fetch", 100*time.Millisecond, "Interval between block fetches (default: 100ms to stay under 15qps limit)")
@@ -98,43 +100,14 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 			defer cancel()
 
 			// Fetch block
-			block, err := client.GetBlock(ctx, blockNum)
+			blockExt, err := client.GetBlock(ctx, int64(blockNum))
 			if err != nil {
 				return fmt.Errorf("failed to get block %d: %w", blockNum, err)
 			}
 
-			// Print block details
+			// Print raw block details in JSON format
 			fmt.Printf("\nBlock %d Details:\n", blockNum)
-			fmt.Printf("Block ID: %s\n", block.BlockId)
-			fmt.Printf("Block Number: %d\n", block.BlockHeader.RawData.Number)
-			fmt.Printf("Parent Hash: %x\n", block.BlockHeader.RawData.ParentHash)
-			fmt.Printf("Timestamp: %s\n", time.Unix(block.BlockHeader.RawData.Timestamp/1000, 0))
-			fmt.Printf("Witness Address: %x\n", block.BlockHeader.RawData.WitnessAddress)
-			fmt.Printf("Number of Transactions: %d\n", len(block.Transactions))
-
-			// Fetch and verify transaction info
-			var txInfos []*pbtron.TransactionInfo
-			for _, tx := range block.Transactions {
-				// Wait for rate limiter before each transaction info fetch
-				if err := limiter.Wait(context.Background()); err != nil {
-					return fmt.Errorf("rate limiter error: %w", err)
-				}
-
-				txInfo, err := client.GetTransactionInfoByBlockNum(ctx, blockNum, tx.TxId)
-				if err != nil {
-					return fmt.Errorf("failed to get transaction info for tx %s: %w", tx.TxId, err)
-				}
-				txInfos = append(txInfos, txInfo)
-			}
-
-			// Verify integrity between block and transaction info
-			integrity, err := rpc.VerifyIntegrity(block, txInfos)
-			if err != nil {
-				return fmt.Errorf("verifying integrity for block %d: %w", blockNum, err)
-			}
-			if !integrity {
-				return fmt.Errorf("integrity check failed for block %d: block and transaction info hashes do not match", blockNum)
-			}
+			printProtoToMultilineJSON(blockExt)
 
 			// Sleep between fetches if interval is set
 			if intervalBetweenFetch > 0 && blockNum < batchEnd {
@@ -149,4 +122,15 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+func printProtoToMultilineJSON(message proto.Message) {
+	marshaler := protojson.MarshalOptions{
+		Multiline: true,
+		Indent:    "  ",
+	}
+	jsonBytes, err := marshaler.Marshal(message)
+	cli.NoError(err, "Failed to marshal proto message to JSON")
+
+	fmt.Println(string(jsonBytes))
 }

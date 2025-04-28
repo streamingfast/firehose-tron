@@ -37,7 +37,7 @@ func fetchE(cmd *cobra.Command, args []string) error {
 
 	apiKey := sflags.MustGetString(cmd, "tron-api-key")
 	if apiKey == "" {
-		return fmt.Errorf("Tron API key must be provided")
+		return fmt.Errorf("tron API key must be provided")
 	}
 
 	stateDir := sflags.MustGetString(cmd, "state-dir")
@@ -66,6 +66,7 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	poller := blockpoller.New(
 		rpcFetcher,
 		blockpoller.NewFireBlockHandler("type.googleapis.com/sf.tron.type.v1.Block"),
+		// TODO Pass the client
 		nil, // No clients needed for Tron
 		blockpoller.WithStoringState[*rpc.TronClient](stateDir),
 		blockpoller.WithLogger[*rpc.TronClient](logger),

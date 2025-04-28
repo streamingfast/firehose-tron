@@ -3,119 +3,97 @@ package sf.tron.type.v1;
 
 option go_package = "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1;pbtron";
 
+import "google/protobuf/any.proto";
+
 // Block represents a Tron block from the RPC response
-// TODO Remove the block_ prefix from the fields
 message Block {
-  string block_id = 1;
-  BlockHeader block_header = 2;
+  bytes id = 1;
+  BlockHeader header = 2;
   repeated Transaction transactions = 3;
 }
 
 // BlockHeader represents the block header from the RPC response
 message BlockHeader {
-  RawData raw_data = 1;
-  bytes witness_signature = 2;
-}
-
-// RawData contains the core block data from the RPC response
-// TODO put this inline with the block header
-message RawData {
   uint64 number = 1;
   bytes tx_trie_root = 2;
   bytes witness_address = 3;
-  // TODO Add a parent number field (number - 1 unless 0)
-  bytes parent_hash = 4;
-  uint32 version = 5;
-  int64 timestamp = 6;
+  uint64 parent_number = 4;
+  bytes parent_hash = 5;
+  uint32 version = 6;
+  int64 timestamp = 7;
+  bytes witness_signature = 9;
 }
 
-// Transaction represents a Tron transaction from the RPC response
+// Transaction represents a flattened Tron transaction
 message Transaction {
-  repeated TransactionRet ret = 1;
+  // Basic transaction info
+  bytes txid = 1;
   repeated bytes signature = 2;
-  string tx_id = 3;
-  RawTransactionData raw_data = 4;
-  // TODO Use directly their tron-go protobuf types
-  bytes raw_data_hex = 5;
+  bool result = 3;
+  string result_message = 4;
+  
+  // Raw data fields (flattened)
+  bytes ref_block_bytes = 5;
+  bytes ref_block_hash = 6;
+  int64 expiration = 7;
+  int64 timestamp = 8;
+  
+  // Contract info
+  repeated Contract contracts = 9;
 }
 
-// TransactionRet represents the transaction return value
-message TransactionRet {
-  string contract_ret = 1;
-}
-
-// RawTransactionData contains the raw transaction data from the RPC response
-message RawTransactionData {
-  repeated Contract contract = 1;
-  bytes ref_block_bytes = 2;
-  bytes ref_block_hash = 3;
-  int64 expiration = 4;
-  int64 timestamp = 5;
-  int64 fee_limit = 6;
-}
-
-// Contract represents a transaction contract from the RPC response
+// Contract represents a transaction contract
 message Contract {
-  string type = 1;
-  ContractParameter parameter = 2;
+  enum ContractType {
+    UNKNOWN = 0;
+    ACCOUNT_CREATE = 1;
+    TRANSFER = 2;
+    TRANSFER_ASSET = 3;
+    VOTE_ASSET = 4;
+    VOTE_WITNESS = 5;
+    WITNESS_CREATE = 6;
+    ASSET_ISSUE = 7;
+    WITNESS_UPDATE = 8;
+    PARTICIPATE_ASSET_ISSUE = 9;
+    ACCOUNT_UPDATE = 10;
+    FREEZE_BALANCE = 11;
+    UNFREEZE_BALANCE = 12;
+    WITHDRAW_BALANCE = 13;
+    UNFREEZE_ASSET = 14;
+    UPDATE_ASSET = 15;
+    PROPOSAL_CREATE = 16;
+    PROPOSAL_APPROVE = 17;
+    PROPOSAL_DELETE = 18;
+    SET_ACCOUNT_ID = 19;
+    CUSTOM = 20;
+    CREATE_SMART_CONTRACT = 30;
+    TRIGGER_SMART_CONTRACT = 31;
+    GET_CONTRACT = 32;
+    UPDATE_SETTING = 33;
+    EXCHANGE_CREATE = 41;
+    EXCHANGE_INJECT = 42;
+    EXCHANGE_WITHDRAW = 43;
+    EXCHANGE_TRANSACTION = 44;
+    UPDATE_ENERGY_LIMIT = 45;
+    ACCOUNT_PERMISSION_UPDATE = 46;
+    CLEAR_ABI = 48;
+    UPDATE_BROKERAGE = 49;
+    SHIELDED_TRANSFER = 51;
+    MARKET_SELL_ASSET = 52;
+    MARKET_CANCEL_ORDER = 53;
+    FREEZE_BALANCE_V2 = 54;
+    UNFREEZE_BALANCE_V2 = 55;
+    WITHDRAW_EXPIRE_UNFREEZE = 56;
+    DELEGATE_RESOURCE = 57;
+    UNDELEGATE_RESOURCE = 58;
+    CANCEL_ALL_UNFREEZE_V2 = 59;
+  }
+  
+  ContractType type = 1;
+  google.protobuf.Any parameter = 2;
+  bytes provider = 3;
+  bytes contract_name = 4;
+  int32 permission_id = 5;
 }
 
-// ContractParameter represents the contract parameter from the RPC response
-message ContractParameter {
-  string type_url = 1;
-  ContractValue value = 2;
-}
-
-// ContractValue represents the contract parameter value
-message ContractValue {
-  bytes data = 1;
-  bytes owner_address = 2;
-  bytes contract_address = 3;
-  int64 call_value = 4;
-}
-
-// TransactionInfo represents detailed transaction information from the RPC response
-message TransactionInfo {
-  repeated Log log = 1;
-  uint64 block_number = 2;
-  repeated string contract_result = 3;
-  int64 block_timestamp = 4;
-  Receipt receipt = 5;
-  string id = 6;
-  bytes contract_address = 7;
-  repeated InternalTransaction internal_transactions = 8;
-  int64 fee = 9;
-}
-
-// Log represents a transaction log from the RPC response
-message Log {
-  bytes address = 1;
-  bytes data = 2;
-  repeated bytes topics = 3;
-}
-
-// Receipt represents the transaction receipt from the RPC response
-message Receipt {
-  string result = 1;
-  int64 energy_usage = 2;
-  int64 energy_fee = 3;
-  int64 origin_energy_usage = 4;
-  int64 energy_usage_total = 5;
-  int64 net_usage = 6;
-  int64 net_fee = 7;
-}
-
-// InternalTransaction represents an internal transaction from the RPC response
-message InternalTransaction {
-  bytes caller_address = 1;
-  bytes note = 2;
-  bytes transfer_to_address = 3;
-  repeated CallValueInfo call_value_info = 4;
-  bytes hash = 5;
-}
-
-// CallValueInfo represents call value information from the RPC response
-message CallValueInfo {
-  int64 call_value = 1;
-}
  
