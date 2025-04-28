@@ -16,6 +16,7 @@ import (
 	"github.com/streamingfast/cli"
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/firehose-core/blockpoller"
+	firecoreRPC "github.com/streamingfast/firehose-core/rpc"
 	pbtron "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1"
 	"github.com/streamingfast/firehose-tron/tron/pb/api"
 	"go.uber.org/zap"
@@ -25,43 +26,16 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
-var _ blockpoller.BlockFetcher[*TronClient] = (*Fetcher)(nil)
+var _ blockpoller.BlockFetcher[api.WalletClient] = (*Fetcher)(nil)
 
 type Fetcher struct {
-	client                   *TronClient
+	clients                  *firecoreRPC.Clients[api.WalletClient]
 	fetchInterval            time.Duration
 	latestBlockRetryInterval time.Duration
 	logger                   *zap.Logger
 	latestBlockNum           int64
 }
 
-// TODO Validate this structure
-type TronClient struct {
-	client api.WalletClient
-	url    string
-	apiKey string
-}
-
-// "grpc.trongrid.io:50051"
-func NewTronClient(url string, apiKey string) *TronClient {
-	// Create gRPC connection with proper credentials and timeout
-	conn, err := dgrpc.NewExternalClientConn(
-		url,
-		dgrpc.WithMustAutoTransportCredentials(false, true, false),
-		grpc.WithPerRPCCredentials(&apiKeyCredentials{apiKey: apiKey}),
-	)
-	cli.NoError(err, "Failed to create client connection")
-
-	client := api.NewWalletClient(conn)
-
-	return &TronClient{
-		client: client,
-		url:    url,
-		apiKey: apiKey,
-	}
-}
-
-// apiKeyCredentials implements credentials.PerRPCCredentials
 type apiKeyCredentials struct {
 	apiKey string
 }
@@ -76,13 +50,24 @@ func (c *apiKeyCredentials) RequireTransportSecurity() bool {
 	return false
 }
 
+func NewTronClient(url string, apiKey string) api.WalletClient {
+	conn, err := dgrpc.NewExternalClientConn(
+		url,
+		dgrpc.WithMustAutoTransportCredentials(false, true, false),
+		grpc.WithPerRPCCredentials(&apiKeyCredentials{apiKey: apiKey}),
+	)
+	cli.NoError(err, "Failed to create client connection")
+
+	return api.NewWalletClient(conn)
+}
+
 func NewFetcher(
-	client *TronClient,
+	clients *firecoreRPC.Clients[api.WalletClient],
 	fetchInterval time.Duration,
 	latestBlockRetryInterval time.Duration,
 	logger *zap.Logger) *Fetcher {
 	return &Fetcher{
-		client:                   client,
+		clients:                  clients,
 		fetchInterval:            fetchInterval,
 		latestBlockRetryInterval: latestBlockRetryInterval,
 		logger:                   logger,
@@ -93,14 +78,14 @@ func (f *Fetcher) IsBlockAvailable(blockNum uint64) bool {
 	return uint64(f.latestBlockNum) >= blockNum
 }
 
-func (f *Fetcher) Fetch(ctx context.Context, client *TronClient, requestBlockNum uint64) (b *pbbstream.Block, skipped bool, err error) {
+func (f *Fetcher) Fetch(ctx context.Context, client api.WalletClient, requestBlockNum uint64) (b *pbbstream.Block, skipped bool, err error) {
 	f.logger.Info("fetching block", zap.Uint64("block_num", requestBlockNum))
 
 	sleepDuration := time.Duration(0)
 	for f.latestBlockNum < int64(requestBlockNum) {
 		time.Sleep(sleepDuration)
 
-		f.latestBlockNum, err = f.fetchLatestBlockNum(ctx)
+		f.latestBlockNum, err = f.fetchLatestBlockNum(ctx, client)
 		if err != nil {
 			return nil, false, fmt.Errorf("fetching latest block num: %w", err)
 		}
@@ -114,7 +99,7 @@ func (f *Fetcher) Fetch(ctx context.Context, client *TronClient, requestBlockNum
 	}
 
 	// Fetch block data
-	blockExt, err := client.GetBlock(ctx, int64(requestBlockNum))
+	blockExt, err := GetBlock(ctx, client, int64(requestBlockNum))
 	if err != nil {
 		return nil, false, fmt.Errorf("getting block: %w", err)
 	}
@@ -129,12 +114,12 @@ func (f *Fetcher) Fetch(ctx context.Context, client *TronClient, requestBlockNum
 	return convertBlock(block)
 }
 
-func (c *TronClient) GetBlock(ctx context.Context, blockNum int64) (*api.BlockExtention, error) {
+func GetBlock(ctx context.Context, client api.WalletClient, blockNum int64) (*api.BlockExtention, error) {
 	// Create a context with timeout for the RPC call
 	ctx, cancel := context.WithTimeout(ctx, 10*time.Second)
 	defer cancel()
 
-	block, err := c.client.GetBlockByNum2(ctx, &api.NumberMessage{Num: blockNum})
+	block, err := client.GetBlockByNum2(ctx, &api.NumberMessage{Num: blockNum})
 	if err != nil {
 		return nil, fmt.Errorf("get block: %w", err)
 	}
@@ -142,18 +127,8 @@ func (c *TronClient) GetBlock(ctx context.Context, blockNum int64) (*api.BlockEx
 	return block, nil
 }
 
-func (c *TronClient) GetTransactionInfoByBlockNum(ctx context.Context, blockNum int64) (*api.TransactionInfoList, error) {
-	txInfo, err := c.client.GetTransactionInfoByBlockNum(ctx, &api.NumberMessage{Num: blockNum})
-	if err != nil {
-		return nil, fmt.Errorf("get transaction info: %w", err)
-	}
-
-	return txInfo, nil
-}
-
-func (f *Fetcher) fetchLatestBlockNum(ctx context.Context) (int64, error) {
-
-	block, err := f.client.client.GetNowBlock2(ctx, &api.EmptyMessage{})
+func (f *Fetcher) fetchLatestBlockNum(ctx context.Context, client api.WalletClient) (int64, error) {
+	block, err := client.GetNowBlock2(ctx, &api.EmptyMessage{})
 	if err != nil {
 		return 0, fmt.Errorf("fetching latest block num: %w", err)
 	}
@@ -343,13 +318,18 @@ func convertBlock(block *pbtron.Block) (*pbbstream.Block, bool, error) {
 	}
 	// TODO: Last irreversible block number
 	// For now we can do this by subtracting 20 from the block number
-	libNum := parentBlockNum
+	var libNum uint64
+	if block.Header.Number > 20 {
+		libNum = block.Header.Number - 20
+	} else {
+		libNum = 0
+	}
 
-	// Decode base64 block ID and parent hash
 	blockID, err := base64.StdEncoding.DecodeString(string(block.Id))
 	if err != nil {
-		return nil, false, fmt.Errorf("failed to decode block ID: %w", err)
+		return nil, false, fmt.Errorf("failed to decode block id: %w", err)
 	}
+
 	parentHash, err := base64.StdEncoding.DecodeString(string(block.Header.ParentHash))
 	if err != nil {
 		return nil, false, fmt.Errorf("failed to decode parent hash: %w", err)

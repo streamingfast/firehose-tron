@@ -23,7 +23,7 @@ start:
       --block-fetch-batch-size=1
       --latest-block-retry-interval=10s
       --tron-endpoints=$TRON_RPC_ENDPOINT
-      --eth-endpoints=$ETHEREUM_MAINNET_RPC_ENDPOINT
+      --tron-api-key=$TRON_API_KEY
       --interval-between-fetch=0s
     substreams-tier1-block-type: sf.tron.type.v1.Block
     substreams-tier1-grpc-listen-addr: :9000

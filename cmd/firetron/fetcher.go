@@ -10,7 +10,9 @@ import (
 	. "github.com/streamingfast/cli"
 	"github.com/streamingfast/cli/sflags"
 	"github.com/streamingfast/firehose-core/blockpoller"
+	firecoreRPC "github.com/streamingfast/firehose-core/rpc"
 	"github.com/streamingfast/firehose-tron/rpc"
+	"github.com/streamingfast/firehose-tron/tron/pb/api"
 	"go.uber.org/zap"
 )
 
@@ -59,17 +61,25 @@ func fetchE(cmd *cobra.Command, args []string) error {
 		zap.Duration("max_block_fetch_duration", maxBlockFetchDuration),
 	)
 
-	// Create Tron client with the first endpoint
-	client := rpc.NewTronClient(rpcEndpoints[0], apiKey)
-	rpcFetcher := rpc.NewFetcher(client, fetchInterval, latestBlockRetryInterval, logger)
+	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[api.WalletClient]()
+	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
+
+	for _, endpoint := range rpcEndpoints {
+		client := rpc.NewTronClient(endpoint, apiKey)
+		tronClients.Add(client)
+	}
+
+	// Create Tron clients with all endpoints
+	fetcher := rpc.NewFetcher(tronClients, fetchInterval, latestBlockRetryInterval, logger)
+
+	rpcFetcher := fetcher
 
 	poller := blockpoller.New(
 		rpcFetcher,
 		blockpoller.NewFireBlockHandler("type.googleapis.com/sf.tron.type.v1.Block"),
-		// TODO Pass the client
-		nil, // No clients needed for Tron
-		blockpoller.WithStoringState[*rpc.TronClient](stateDir),
-		blockpoller.WithLogger[*rpc.TronClient](logger),
+		tronClients,
+		blockpoller.WithStoringState[api.WalletClient](stateDir),
+		blockpoller.WithLogger[api.WalletClient](logger),
 	)
 
 	err = poller.Run(startBlock, nil, sflags.MustGetInt(cmd, "block-fetch-batch-size"))

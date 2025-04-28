@@ -10,7 +10,9 @@ import (
 	"github.com/spf13/pflag"
 	"github.com/streamingfast/cli"
 	. "github.com/streamingfast/cli"
+	firecoreRPC "github.com/streamingfast/firehose-core/rpc"
 	"github.com/streamingfast/firehose-tron/rpc"
+	"github.com/streamingfast/firehose-tron/tron/pb/api"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -74,8 +76,13 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 		zap.Int("max_requests_per_second", maxRPS),
 	)
 
-	// Create Tron client
+	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[api.WalletClient]()
+	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
 	client := rpc.NewTronClient(rpcEndpoint, apiKey)
+	tronClients.Add(client)
+
+	// Create Tron clients with all endpoints
+	fetcher := rpc.NewFetcher(tronClients, intervalBetweenFetch, latestBlockRetryInterval, logger)
 
 	// Process blocks in batches
 	for currentBlock := startBlock; currentBlock <= endBlock; currentBlock += uint64(batchSize) {
@@ -100,14 +107,19 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 			defer cancel()
 
 			// Fetch block
-			blockExt, err := client.GetBlock(ctx, int64(blockNum))
+			block, skipped, err := fetcher.Fetch(ctx, client, blockNum)
 			if err != nil {
 				return fmt.Errorf("failed to get block %d: %w", blockNum, err)
 			}
 
+			if skipped {
+				logger.Info("block was skipped", zap.Uint64("block_num", blockNum))
+				continue
+			}
+
 			// Print raw block details in JSON format
 			fmt.Printf("\nBlock %d Details:\n", blockNum)
-			printProtoToMultilineJSON(blockExt)
+			printProtoToMultilineJSON(block)
 
 			// Sleep between fetches if interval is set
 			if intervalBetweenFetch > 0 && blockNum < batchEnd {
