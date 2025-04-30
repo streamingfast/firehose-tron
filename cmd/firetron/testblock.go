@@ -52,10 +52,6 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 
 	rpcEndpoint, _ := cmd.Flags().GetString("rpc-endpoint")
 	apiKey, _ := cmd.Flags().GetString("tron-api-key")
-	if apiKey == "" {
-		return fmt.Errorf("tron api key must be provided")
-	}
-
 	intervalBetweenFetch, _ := cmd.Flags().GetDuration("interval-between-fetch")
 	latestBlockRetryInterval, _ := cmd.Flags().GetDuration("latest-block-retry-interval")
 	batchSize, _ := cmd.Flags().GetInt("block-fetch-batch-size")
