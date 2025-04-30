@@ -4,6 +4,8 @@ package sf.tron.type.v1;
 option go_package = "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1;pbtron";
 
 import "google/protobuf/any.proto";
+import "api/api.proto";
+import "core/Tron.proto";
 
 // Block represents a Tron block from the RPC response
 message Block {
@@ -37,71 +39,68 @@ message Transaction {
 
   // TODO Do we want result and result message here?
 
-  // TODO Add proper type for this
   // Raw TransactionExtention
-  google.protobuf.Any transaction_extention = 7;
+  protocol.TransactionExtention transaction_extention = 7;
 
-  // TODO Add proper type for this
   // Raw TransactionInfo
-  google.protobuf.Any transaction_info = 8;
+  protocol.TransactionInfo transaction_info = 8;
 
   // TODO Add proper type for this
-  repeated Contract contracts = 9;
+  repeated protocol.Transaction.Contract contracts = 9;
 }
 
-// TODO Remove this once typed is defined
-// Contract represents a transaction contract
-message Contract {
-  enum ContractType {
-    UNKNOWN = 0;
-    ACCOUNT_CREATE = 1;
-    TRANSFER = 2;
-    TRANSFER_ASSET = 3;
-    VOTE_ASSET = 4;
-    VOTE_WITNESS = 5;
-    WITNESS_CREATE = 6;
-    ASSET_ISSUE = 7;
-    WITNESS_UPDATE = 8;
-    PARTICIPATE_ASSET_ISSUE = 9;
-    ACCOUNT_UPDATE = 10;
-    FREEZE_BALANCE = 11;
-    UNFREEZE_BALANCE = 12;
-    WITHDRAW_BALANCE = 13;
-    UNFREEZE_ASSET = 14;
-    UPDATE_ASSET = 15;
-    PROPOSAL_CREATE = 16;
-    PROPOSAL_APPROVE = 17;
-    PROPOSAL_DELETE = 18;
-    SET_ACCOUNT_ID = 19;
-    CUSTOM = 20;
-    CREATE_SMART_CONTRACT = 30;
-    TRIGGER_SMART_CONTRACT = 31;
-    GET_CONTRACT = 32;
-    UPDATE_SETTING = 33;
-    EXCHANGE_CREATE = 41;
-    EXCHANGE_INJECT = 42;
-    EXCHANGE_WITHDRAW = 43;
-    EXCHANGE_TRANSACTION = 44;
-    UPDATE_ENERGY_LIMIT = 45;
-    ACCOUNT_PERMISSION_UPDATE = 46;
-    CLEAR_ABI = 48;
-    UPDATE_BROKERAGE = 49;
-    SHIELDED_TRANSFER = 51;
-    MARKET_SELL_ASSET = 52;
-    MARKET_CANCEL_ORDER = 53;
-    FREEZE_BALANCE_V2 = 54;
-    UNFREEZE_BALANCE_V2 = 55;
-    WITHDRAW_EXPIRE_UNFREEZE = 56;
-    DELEGATE_RESOURCE = 57;
-    UNDELEGATE_RESOURCE = 58;
-    CANCEL_ALL_UNFREEZE_V2 = 59;
-  }
-  
-  ContractType type = 1;
-  google.protobuf.Any parameter = 2;
-  bytes provider = 3;
-  bytes contract_name = 4;
-  int32 permission_id = 5;
-}
+// // TODO Remove this once typed is defined
+// // Contract represents a transaction contract
+// message Contract {
+//   enum ContractType {
+//     UNKNOWN = 0;
+//     ACCOUNT_CREATE = 1;
+//     TRANSFER = 2;
+//     TRANSFER_ASSET = 3;
+//     VOTE_ASSET = 4;
+//     VOTE_WITNESS = 5;
+//     WITNESS_CREATE = 6;
+//     ASSET_ISSUE = 7;
+//     WITNESS_UPDATE = 8;
+//     PARTICIPATE_ASSET_ISSUE = 9;
+//     ACCOUNT_UPDATE = 10;
+//     FREEZE_BALANCE = 11;
+//     UNFREEZE_BALANCE = 12;
+//     WITHDRAW_BALANCE = 13;
+//     UNFREEZE_ASSET = 14;
+//     UPDATE_ASSET = 15;
+//     PROPOSAL_CREATE = 16;
+//     PROPOSAL_APPROVE = 17;
+//     PROPOSAL_DELETE = 18;
+//     SET_ACCOUNT_ID = 19;
+//     CUSTOM = 20;
+//     CREATE_SMART_CONTRACT = 30;
+//     TRIGGER_SMART_CONTRACT = 31;
+//     GET_CONTRACT = 32;
+//     UPDATE_SETTING = 33;
+//     EXCHANGE_CREATE = 41;
+//     EXCHANGE_INJECT = 42;
+//     EXCHANGE_WITHDRAW = 43;
+//     EXCHANGE_TRANSACTION = 44;
+//     UPDATE_ENERGY_LIMIT = 45;
+//     ACCOUNT_PERMISSION_UPDATE = 46;
+//     CLEAR_ABI = 48;
+//     UPDATE_BROKERAGE = 49;
+//     SHIELDED_TRANSFER = 51;
+//     MARKET_SELL_ASSET = 52;
+//     MARKET_CANCEL_ORDER = 53;
+//     FREEZE_BALANCE_V2 = 54;
+//     UNFREEZE_BALANCE_V2 = 55;
+//     WITHDRAW_EXPIRE_UNFREEZE = 56;
+//     DELEGATE_RESOURCE = 57;
+//     UNDELEGATE_RESOURCE = 58;
+//     CANCEL_ALL_UNFREEZE_V2 = 59;
+//   }
 
- 
+//   ContractType type = 1;
+//   google.protobuf.Any parameter = 2;
+//   bytes provider = 3;
+//   bytes contract_name = 4;
+//   int32 permission_id = 5;
+// }
+

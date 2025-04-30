@@ -6,3 +6,8 @@ deps:
     repository: googleapis
     commit: 61b203b9a9164be9a834f58c37be6f62
     digest: shake256:e619113001d6e284ee8a92b1561e5d4ea89a47b28bf0410815cb2fa23914df8be9f1a6a98dcf069f5bc2d829a2cfb1ac614863be45cd4f8a5ad8606c5f200224
+  - remote: buf.build
+    owner: streamingfast
+    repository: tron-protocol
+    commit: 84fc05905d3a49318eaafd7e63e2e5e4
+    digest: shake256:a3c233b855f51249267f992992cae1b8ab51d37bda2820cfa70a49a4b966281142046ec5964b2fe777f67ff9739150d369a415059ef61eba3d8ae578f1e9862d

@@ -1,7 +1,7 @@
 version: v1
 name: buf.build/streamingfast/firehose-tron
 deps:
-  - buf.build/googleapis/googleapis
+  - buf.build/streamingfast/tron-protocol
 breaking:
   use:
     - FILE

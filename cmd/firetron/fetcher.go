@@ -11,8 +11,9 @@ import (
 	"github.com/streamingfast/cli/sflags"
 	"github.com/streamingfast/firehose-core/blockpoller"
 	firecoreRPC "github.com/streamingfast/firehose-core/rpc"
+	pbtron "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1"
 	"github.com/streamingfast/firehose-tron/rpc"
-	"github.com/streamingfast/firehose-tron/tron/pb/api"
+	pbtronapi "github.com/streamingfast/tron-protocol/pb/api"
 	"go.uber.org/zap"
 )
 
@@ -38,10 +39,6 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	}
 
 	apiKey := sflags.MustGetString(cmd, "tron-api-key")
-	if apiKey == "" {
-		return fmt.Errorf("tron API key must be provided")
-	}
-
 	stateDir := sflags.MustGetString(cmd, "state-dir")
 	startBlock, err := strconv.ParseUint(args[0], 10, 64)
 	if err != nil {
@@ -52,7 +49,7 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	latestBlockRetryInterval := sflags.MustGetDuration(cmd, "latest-block-retry-interval")
 	maxBlockFetchDuration := sflags.MustGetDuration(cmd, "max-block-fetch-duration")
 
-	logger.Info("launching firehose-tron poller",
+	logger.Info("launching Tron poller",
 		zap.Strings("rpc_endpoints", rpcEndpoints),
 		zap.String("state_dir", stateDir),
 		zap.Uint64("first_streamable_block", startBlock),
@@ -61,7 +58,7 @@ func fetchE(cmd *cobra.Command, args []string) error {
 		zap.Duration("max_block_fetch_duration", maxBlockFetchDuration),
 	)
 
-	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[api.WalletClient]()
+	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient]()
 	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
 
 	for _, endpoint := range rpcEndpoints {
@@ -76,10 +73,10 @@ func fetchE(cmd *cobra.Command, args []string) error {
 
 	poller := blockpoller.New(
 		rpcFetcher,
-		blockpoller.NewFireBlockHandler("type.googleapis.com/sf.tron.type.v1.Block"),
+		blockpoller.NewFireBlockHandler(blockTypeURL()),
 		tronClients,
-		blockpoller.WithStoringState[api.WalletClient](stateDir),
-		blockpoller.WithLogger[api.WalletClient](logger),
+		blockpoller.WithStoringState[pbtronapi.WalletClient](stateDir),
+		blockpoller.WithLogger[pbtronapi.WalletClient](logger),
 	)
 
 	err = poller.Run(startBlock, nil, sflags.MustGetInt(cmd, "block-fetch-batch-size"))
@@ -88,4 +85,10 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	}
 
 	return nil
+}
+
+var blockTypeFullName = new(pbtron.Block).ProtoReflect().Descriptor().FullName()
+
+func blockTypeURL() string {
+	return "type.googleapis.com/" + string(blockTypeFullName)
 }

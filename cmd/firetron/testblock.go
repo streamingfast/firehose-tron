@@ -12,7 +12,7 @@ import (
 	. "github.com/streamingfast/cli"
 	firecoreRPC "github.com/streamingfast/firehose-core/rpc"
 	"github.com/streamingfast/firehose-tron/rpc"
-	"github.com/streamingfast/firehose-tron/tron/pb/api"
+	pbtronapi "github.com/streamingfast/tron-protocol/pb/api"
 	"go.uber.org/zap"
 	"golang.org/x/time/rate"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -76,7 +76,7 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 		zap.Int("max_requests_per_second", maxRPS),
 	)
 
-	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[api.WalletClient]()
+	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient]()
 	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
 	client := rpc.NewTronClient(rpcEndpoint, apiKey)
 	tronClients.Add(client)
