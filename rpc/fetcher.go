@@ -100,12 +100,12 @@ func (f *Fetcher) Fetch(ctx context.Context, client pbtronapi.WalletClient, requ
 	}
 
 	// Fetch block data
-	blockExt, err := GetBlock(ctx, client, int64(requestBlockNum))
+	blockExt, err := getBlock(ctx, client, int64(requestBlockNum))
 	if err != nil {
 		return nil, false, fmt.Errorf("getting block: %w", err)
 	}
 
-	transactionInfoList, err := GetTransactionInfoByBlockNum(ctx, client, uint64(requestBlockNum))
+	transactionInfoList, err := getTransactionInfoByBlockNum(ctx, client, uint64(requestBlockNum))
 	if err != nil {
 		return nil, false, fmt.Errorf("getting transaction info: %w", err)
 	}
@@ -129,7 +129,7 @@ func (f *Fetcher) Fetch(ctx context.Context, client pbtronapi.WalletClient, requ
 	return convertBlock(block)
 }
 
-func GetBlock(ctx context.Context, client pbtronapi.WalletClient, blockNum int64) (*pbtronapi.BlockExtention, error) {
+func getBlock(ctx context.Context, client pbtronapi.WalletClient, blockNum int64) (*pbtronapi.BlockExtention, error) {
 	block, err := client.GetBlockByNum2(ctx, &pbtronapi.NumberMessage{Num: blockNum})
 	if err != nil {
 		return nil, fmt.Errorf("get block: %w", err)
@@ -138,7 +138,7 @@ func GetBlock(ctx context.Context, client pbtronapi.WalletClient, blockNum int64
 	return block, nil
 }
 
-func GetTransactionInfoByBlockNum(ctx context.Context, client pbtronapi.WalletClient, blockNum uint64) (*pbtronapi.TransactionInfoList, error) {
+func getTransactionInfoByBlockNum(ctx context.Context, client pbtronapi.WalletClient, blockNum uint64) (*pbtronapi.TransactionInfoList, error) {
 	txInfoList, err := client.GetTransactionInfoByBlockNum(ctx, &pbtronapi.NumberMessage{Num: int64(blockNum)})
 	if err != nil {
 		return nil, fmt.Errorf("get block: %w", err)
@@ -225,7 +225,7 @@ func convertBlockAndTransactionsToBlock(blockExt *pbtronapi.BlockExtention, tran
 			return nil, fmt.Errorf("failed to convert transaction: %w", err)
 		}
 
-		tx.TransactionInfo = transactionInfoList.TransactionInfo[i]
+		tx.Info = transactionInfoList.TransactionInfo[i]
 		block.Transactions = append(block.Transactions, tx)
 	}
 
@@ -245,15 +245,19 @@ func convertTransactionExtentionToTransaction(txExt *pbtronapi.TransactionExtent
 
 	// Create our flattened transaction
 	tx := &pbtron.Transaction{
-		Txid:          txExt.Txid,
-		Signature:     txExt.Transaction.Signature,
-		RefBlockBytes: rawData.RefBlockBytes,
-		RefBlockHash:  rawData.RefBlockHash,
-		Expiration:    rawData.Expiration,
-		Timestamp:     rawData.Timestamp,
+		Txid:           txExt.Txid,
+		Signature:      txExt.Transaction.Signature,
+		RefBlockBytes:  rawData.RefBlockBytes,
+		RefBlockHash:   rawData.RefBlockHash,
+		Expiration:     rawData.Expiration,
+		Timestamp:      rawData.Timestamp,
+		ConstantResult: txExt.ConstantResult,
+		Result:         txExt.Result.Result,
+		Code:           pbtron.ResponseCode(txExt.Result.Code),
+		Message:        txExt.Result.Message,
+		EnergyUsed:     txExt.EnergyUsed,
+		EnergyPenalty:  txExt.EnergyPenalty,
 	}
-
-	tx.TransactionExtention = txExt
 
 	// Convert contracts
 	for _, contract := range rawData.Contract {

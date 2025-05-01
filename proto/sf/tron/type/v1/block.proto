@@ -4,11 +4,11 @@ package sf.tron.type.v1;
 option go_package = "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1;pbtron";
 
 import "google/protobuf/any.proto";
-import "api/api.proto";
 import "core/Tron.proto";
 
 // Block represents a Tron block from the RPC response
 message Block {
+  // Block hash in bytes
   bytes id = 1;
   BlockHeader header = 2;
   repeated Transaction transactions = 3;
@@ -16,91 +16,70 @@ message Block {
 
 // BlockHeader represents the block header from the RPC response
 message BlockHeader {
+  // Block number (height)
   uint64 number = 1;
+  // Merkle root of all transactions in the block
   bytes tx_trie_root = 2;
+  // Address of the block producer (witness)
   bytes witness_address = 3;
   uint64 parent_number = 4;
   bytes parent_hash = 5;
   uint32 version = 6;
+  // Block timestamp in milliseconds since Unix epoch
   int64 timestamp = 7;
+  // Witness signature of the block
   bytes witness_signature = 8;
 }
 
 // Transaction represents a flattened Tron transaction
 message Transaction {
-  // Basic transaction info
-  // TODO validate what field we want here
+  // Transaction hash in bytes
   bytes txid = 1;
   repeated bytes signature = 2;
   bytes ref_block_bytes = 3;
   bytes ref_block_hash = 4;
+  // Transaction expiration timestamp in milliseconds
   int64 expiration = 5;
+  // Transaction creation timestamp in milliseconds
   int64 timestamp = 6;
 
-  // TODO Do we want result and result message here?
+  // Contract execution result in bytes
+  repeated bytes constant_result = 7;
 
-  // Raw TransactionExtention
-  protocol.TransactionExtention transaction_extention = 7;
+  bool result = 8;
+  // Transaction execution status code (see response_code enum)
+  response_code code = 9;
+  // Error message if any
+  bytes message = 10;
+  // Energy consumed by the transaction
+  int64 energy_used = 11;
+  // Energy penalty for the transaction
+  int64 energy_penalty = 12;
 
-  // Raw TransactionInfo
-  protocol.TransactionInfo transaction_info = 8;
+  // Raw TransactionInfo from the Tron protocol containing execution details
+  // source: https://buf.build/streamingfast/tron-protocol/file/main:core/Tron.proto#L453
+  protocol.TransactionInfo info = 13;
 
-  // TODO Add proper type for this
-  repeated protocol.Transaction.Contract contracts = 9;
+  // List of contracts executed in this transaction
+  // source: https://buf.build/streamingfast/tron-protocol/file/main:core/Tron.proto#L337
+  repeated protocol.Transaction.Contract contracts = 14;
 }
 
-// // TODO Remove this once typed is defined
-// // Contract represents a transaction contract
-// message Contract {
-//   enum ContractType {
-//     UNKNOWN = 0;
-//     ACCOUNT_CREATE = 1;
-//     TRANSFER = 2;
-//     TRANSFER_ASSET = 3;
-//     VOTE_ASSET = 4;
-//     VOTE_WITNESS = 5;
-//     WITNESS_CREATE = 6;
-//     ASSET_ISSUE = 7;
-//     WITNESS_UPDATE = 8;
-//     PARTICIPATE_ASSET_ISSUE = 9;
-//     ACCOUNT_UPDATE = 10;
-//     FREEZE_BALANCE = 11;
-//     UNFREEZE_BALANCE = 12;
-//     WITHDRAW_BALANCE = 13;
-//     UNFREEZE_ASSET = 14;
-//     UPDATE_ASSET = 15;
-//     PROPOSAL_CREATE = 16;
-//     PROPOSAL_APPROVE = 17;
-//     PROPOSAL_DELETE = 18;
-//     SET_ACCOUNT_ID = 19;
-//     CUSTOM = 20;
-//     CREATE_SMART_CONTRACT = 30;
-//     TRIGGER_SMART_CONTRACT = 31;
-//     GET_CONTRACT = 32;
-//     UPDATE_SETTING = 33;
-//     EXCHANGE_CREATE = 41;
-//     EXCHANGE_INJECT = 42;
-//     EXCHANGE_WITHDRAW = 43;
-//     EXCHANGE_TRANSACTION = 44;
-//     UPDATE_ENERGY_LIMIT = 45;
-//     ACCOUNT_PERMISSION_UPDATE = 46;
-//     CLEAR_ABI = 48;
-//     UPDATE_BROKERAGE = 49;
-//     SHIELDED_TRANSFER = 51;
-//     MARKET_SELL_ASSET = 52;
-//     MARKET_CANCEL_ORDER = 53;
-//     FREEZE_BALANCE_V2 = 54;
-//     UNFREEZE_BALANCE_V2 = 55;
-//     WITHDRAW_EXPIRE_UNFREEZE = 56;
-//     DELEGATE_RESOURCE = 57;
-//     UNDELEGATE_RESOURCE = 58;
-//     CANCEL_ALL_UNFREEZE_V2 = 59;
-//   }
-
-//   ContractType type = 1;
-//   google.protobuf.Any parameter = 2;
-//   bytes provider = 3;
-//   bytes contract_name = 4;
-//   int32 permission_id = 5;
-// }
-
+// Potential error values for a Transaction taken from Tron protocol definition
+// source: https://github.com/tronprotocol/protocol/blob/2a678934da3992b1a67f975769bbb2d31989451f/api/api.proto#L1041
+enum response_code {
+  SUCCESS = 0;
+  SIGERROR = 1; // error in signature
+  CONTRACT_VALIDATE_ERROR = 2;
+  CONTRACT_EXE_ERROR = 3;
+  BANDWITH_ERROR = 4;
+  DUP_TRANSACTION_ERROR = 5;
+  TAPOS_ERROR = 6;
+  TOO_BIG_TRANSACTION_ERROR = 7;
+  TRANSACTION_EXPIRATION_ERROR = 8;
+  SERVER_BUSY = 9;
+  NO_CONNECTION = 10;
+  NOT_ENOUGH_EFFECTIVE_CONNECTION = 11;
+  BLOCK_UNSOLIDIFIED = 12;
+  OTHER_ERROR = 20;
+}
