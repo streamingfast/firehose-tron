@@ -279,7 +279,9 @@ func (x *BlockHeader) GetWitnessSignature() []byte {
 type Transaction struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
 	// Transaction hash in bytes
-	Txid          []byte   `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	Txid []byte `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
+	// NOTE: only support size = 1, repeated list here for muti-sig extension
+	// source: https://buf.build/streamingfast/tron-protocol/file/main:core/Tron.proto#L448
 	Signature     [][]byte `protobuf:"bytes,2,rep,name=signature,proto3" json:"signature,omitempty"`
 	RefBlockBytes []byte   `protobuf:"bytes,3,opt,name=ref_block_bytes,json=refBlockBytes,proto3" json:"ref_block_bytes,omitempty"`
 	RefBlockHash  []byte   `protobuf:"bytes,4,opt,name=ref_block_hash,json=refBlockHash,proto3" json:"ref_block_hash,omitempty"`
@@ -288,11 +290,11 @@ type Transaction struct {
 	// Transaction creation timestamp in milliseconds
 	Timestamp int64 `protobuf:"varint,6,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// Contract execution result in bytes
-	ConstantResult [][]byte `protobuf:"bytes,7,rep,name=constant_result,json=constantResult,proto3" json:"constant_result,omitempty"`
+	ContractResult [][]byte `protobuf:"bytes,7,rep,name=contract_result,json=contractResult,proto3" json:"contract_result,omitempty"`
 	Result         bool     `protobuf:"varint,8,opt,name=result,proto3" json:"result,omitempty"`
-	// Transaction execution status code (see response_code enum)
+	// Transaction execution status code (see ResponseCode enum)
 	Code ResponseCode `protobuf:"varint,9,opt,name=code,proto3,enum=sf.tron.type.v1.ResponseCode" json:"code,omitempty"`
-	// Error message if any
+	// Return message if any
 	Message []byte `protobuf:"bytes,10,opt,name=message,proto3" json:"message,omitempty"`
 	// Energy consumed by the transaction
 	EnergyUsed int64 `protobuf:"varint,11,opt,name=energy_used,json=energyUsed,proto3" json:"energy_used,omitempty"`
@@ -303,6 +305,8 @@ type Transaction struct {
 	Info *core.TransactionInfo `protobuf:"bytes,13,opt,name=info,proto3" json:"info,omitempty"`
 	// List of contracts executed in this transaction
 	// source: https://buf.build/streamingfast/tron-protocol/file/main:core/Tron.proto#L337
+	// NOTE: only support size = 1, repeated list here for extension
+	// source: https://buf.build/streamingfast/tron-protocol/file/main:core/Tron.proto#L439
 	Contracts     []*core.Transaction_Contract `protobuf:"bytes,14,rep,name=contracts,proto3" json:"contracts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -380,9 +384,9 @@ func (x *Transaction) GetTimestamp() int64 {
 	return 0
 }
 
-func (x *Transaction) GetConstantResult() [][]byte {
+func (x *Transaction) GetContractResult() [][]byte {
 	if x != nil {
-		return x.ConstantResult
+		return x.ContractResult
 	}
 	return nil
 }
@@ -455,7 +459,7 @@ const file_sf_tron_type_v1_block_proto_rawDesc = "" +
 	"parentHash\x12\x18\n" +
 	"\aversion\x18\x06 \x01(\rR\aversion\x12\x1c\n" +
 	"\ttimestamp\x18\a \x01(\x03R\ttimestamp\x12+\n" +
-	"\x11witness_signature\x18\b \x01(\fR\x10witnessSignature\"\x8f\x04\n" +
+	"\x11witness_signature\x18\b \x01(\fR\x10witnessSignature\"\x8e\x04\n" +
 	"\vTransaction\x12\x12\n" +
 	"\x04txid\x18\x01 \x01(\fR\x04txid\x12\x1c\n" +
 	"\tsignature\x18\x02 \x03(\fR\tsignature\x12&\n" +
@@ -465,17 +469,17 @@ const file_sf_tron_type_v1_block_proto_rawDesc = "" +
 	"expiration\x18\x05 \x01(\x03R\n" +
 	"expiration\x12\x1c\n" +
 	"\ttimestamp\x18\x06 \x01(\x03R\ttimestamp\x12'\n" +
-	"\x0fconstant_result\x18\a \x03(\fR\x0econstantResult\x12\x16\n" +
-	"\x06result\x18\b \x01(\bR\x06result\x122\n" +
-	"\x04code\x18\t \x01(\x0e2\x1e.sf.tron.type.v1.response_codeR\x04code\x12\x18\n" +
+	"\x0fcontract_result\x18\a \x03(\fR\x0econtractResult\x12\x16\n" +
+	"\x06result\x18\b \x01(\bR\x06result\x121\n" +
+	"\x04code\x18\t \x01(\x0e2\x1d.sf.tron.type.v1.ResponseCodeR\x04code\x12\x18\n" +
 	"\amessage\x18\n" +
 	" \x01(\fR\amessage\x12\x1f\n" +
 	"\venergy_used\x18\v \x01(\x03R\n" +
 	"energyUsed\x12%\n" +
 	"\x0eenergy_penalty\x18\f \x01(\x03R\renergyPenalty\x12-\n" +
 	"\x04info\x18\r \x01(\v2\x19.protocol.TransactionInfoR\x04info\x12<\n" +
-	"\tcontracts\x18\x0e \x03(\v2\x1e.protocol.Transaction.ContractR\tcontracts*\xd2\x02\n" +
-	"\rresponse_code\x12\v\n" +
+	"\tcontracts\x18\x0e \x03(\v2\x1e.protocol.Transaction.ContractR\tcontracts*\xd1\x02\n" +
+	"\fResponseCode\x12\v\n" +
 	"\aSUCCESS\x10\x00\x12\f\n" +
 	"\bSIGERROR\x10\x01\x12\x1b\n" +
 	"\x17CONTRACT_VALIDATE_ERROR\x10\x02\x12\x16\n" +
@@ -507,7 +511,7 @@ func file_sf_tron_type_v1_block_proto_rawDescGZIP() []byte {
 var file_sf_tron_type_v1_block_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
 var file_sf_tron_type_v1_block_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
 var file_sf_tron_type_v1_block_proto_goTypes = []any{
-	(ResponseCode)(0),                 // 0: sf.tron.type.v1.response_code
+	(ResponseCode)(0),                 // 0: sf.tron.type.v1.ResponseCode
 	(*Block)(nil),                     // 1: sf.tron.type.v1.Block
 	(*BlockHeader)(nil),               // 2: sf.tron.type.v1.BlockHeader
 	(*Transaction)(nil),               // 3: sf.tron.type.v1.Transaction
@@ -517,7 +521,7 @@ var file_sf_tron_type_v1_block_proto_goTypes = []any{
 var file_sf_tron_type_v1_block_proto_depIdxs = []int32{
 	2, // 0: sf.tron.type.v1.Block.header:type_name -> sf.tron.type.v1.BlockHeader
 	3, // 1: sf.tron.type.v1.Block.transactions:type_name -> sf.tron.type.v1.Transaction
-	0, // 2: sf.tron.type.v1.Transaction.code:type_name -> sf.tron.type.v1.response_code
+	0, // 2: sf.tron.type.v1.Transaction.code:type_name -> sf.tron.type.v1.ResponseCode
 	4, // 3: sf.tron.type.v1.Transaction.info:type_name -> protocol.TransactionInfo
 	5, // 4: sf.tron.type.v1.Transaction.contracts:type_name -> protocol.Transaction.Contract
 	5, // [5:5] is the sub-list for method output_type
