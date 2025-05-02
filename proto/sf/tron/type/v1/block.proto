@@ -63,9 +63,8 @@ message Transaction {
   protocol.TransactionInfo info = 13;
 
   // List of contracts executed in this transaction
+  // NOTE: only support size = 1, repeated list here for potential future extension
   // source: https://buf.build/streamingfast/tron-protocol/file/main:core/Tron.proto#L337
-  // NOTE: only support size = 1, repeated list here for extension
-  // source: https://buf.build/streamingfast/tron-protocol/file/main:core/Tron.proto#L439
   repeated protocol.Transaction.Contract contracts = 14;
 }
 
