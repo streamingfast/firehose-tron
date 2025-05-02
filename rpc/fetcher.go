@@ -251,7 +251,7 @@ func convertTransactionExtentionToTransaction(txExt *pbtronapi.TransactionExtent
 		RefBlockHash:   rawData.RefBlockHash,
 		Expiration:     rawData.Expiration,
 		Timestamp:      rawData.Timestamp,
-		ConstantResult: txExt.ConstantResult,
+		ContractResult: txExt.ConstantResult,
 		Result:         txExt.Result.Result,
 		Code:           pbtron.ResponseCode(txExt.Result.Code),
 		Message:        txExt.Result.Message,
