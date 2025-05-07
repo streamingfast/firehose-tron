@@ -204,6 +204,25 @@ func verifyTransactionsIntegrity(getBlockTransactions []*pbtronapi.TransactionEx
 }
 
 func convertBlockAndTransactionsToBlock(blockExt *pbtronapi.BlockExtention, transactionInfoList *pbtronapi.TransactionInfoList) (*pbtron.Block, error) {
+	// Temporary check for nil values to debug the issue
+	if blockExt == nil {
+		return nil, fmt.Errorf("blockExt is nil")
+	}
+	if blockExt.BlockHeader == nil {
+		return nil, fmt.Errorf("blockExt.BlockHeader is nil")
+	}
+	if blockExt.BlockHeader.RawData == nil {
+		return nil, fmt.Errorf("blockExt.BlockHeader.RawData is nil")
+	}
+	if transactionInfoList == nil {
+		return nil, fmt.Errorf("transactionInfoList is nil")
+	}
+	if transactionInfoList.TransactionInfo == nil {
+		return nil, fmt.Errorf("transactionInfoList.TransactionInfo is nil")
+	}
+	if len(blockExt.Transactions) != len(transactionInfoList.TransactionInfo) {
+		return nil, fmt.Errorf("transactions count mismatch: %d vs %d", len(blockExt.Transactions), len(transactionInfoList.TransactionInfo))
+	}
 	block := &pbtron.Block{
 		Id: blockExt.Blockid,
 		Header: &pbtron.BlockHeader{
