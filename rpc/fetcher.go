@@ -214,15 +214,6 @@ func convertBlockAndTransactionsToBlock(blockExt *pbtronapi.BlockExtention, tran
 	if blockExt.BlockHeader.RawData == nil {
 		return nil, fmt.Errorf("blockExt.BlockHeader.RawData is nil")
 	}
-	if transactionInfoList == nil {
-		return nil, fmt.Errorf("transactionInfoList is nil")
-	}
-	if transactionInfoList.TransactionInfo == nil {
-		return nil, fmt.Errorf("transactionInfoList.TransactionInfo is nil")
-	}
-	if len(blockExt.Transactions) != len(transactionInfoList.TransactionInfo) {
-		return nil, fmt.Errorf("transactions count mismatch: %d vs %d", len(blockExt.Transactions), len(transactionInfoList.TransactionInfo))
-	}
 	block := &pbtron.Block{
 		Id: blockExt.Blockid,
 		Header: &pbtron.BlockHeader{
