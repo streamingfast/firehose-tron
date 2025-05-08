@@ -6,10 +6,10 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"net/url"
 	"time"
 
 	pbbstream "github.com/streamingfast/bstream/pb/sf/bstream/v1"
-	"github.com/streamingfast/cli"
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/firehose-core/blockpoller"
 	firecoreRPC "github.com/streamingfast/firehose-core/rpc"
@@ -46,19 +46,52 @@ func (c *apiKeyCredentials) RequireTransportSecurity() bool {
 	return false
 }
 
-func NewTronClient(url string, apiKey string) pbtronapi.WalletClient {
-	grpcOptions := []grpc.DialOption{
-		dgrpc.WithMustAutoTransportCredentials(false, true, false),
+func NewTronClient(endpointURL string, apiKey string) (pbtronapi.WalletClient, error) {
+	parsedURL, err := url.Parse(endpointURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse endpoint URL %q: %w", endpointURL, err)
+	}
+
+	var grpcOptions []grpc.DialOption
+	var hostWithPort string
+
+	switch parsedURL.Scheme {
+	case "http":
+		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(true, false, false))
+		port := parsedURL.Port()
+		if port == "" {
+			port = "80"
+		}
+		hostWithPort = parsedURL.Hostname() + ":" + port
+	case "https":
+		insecure := parsedURL.Query().Get("insecure") == "true"
+		if insecure {
+			grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, true, false))
+		} else {
+			grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, false, false))
+		}
+		port := parsedURL.Port()
+		if port == "" {
+			port = "443"
+		}
+		hostWithPort = parsedURL.Hostname() + ":" + port
+	default:
+		// Default to previous behavior if scheme is not http or https, or is missing
+		// This maintains backward compatibility for host:port style endpoints
+		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, true, false))
+		hostWithPort = endpointURL
 	}
 
 	if apiKey != "" {
 		grpcOptions = append(grpcOptions, grpc.WithPerRPCCredentials(&apiKeyCredentials{apiKey: apiKey}))
 	}
 
-	conn, err := dgrpc.NewExternalClientConn(url, grpcOptions...)
-	cli.NoError(err, "Failed to create client connection")
+	conn, err := dgrpc.NewExternalClientConn(hostWithPort, grpcOptions...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client connection: %w", err)
+	}
 
-	return pbtronapi.NewWalletClient(conn)
+	return pbtronapi.NewWalletClient(conn), nil
 }
 
 func NewFetcher(
