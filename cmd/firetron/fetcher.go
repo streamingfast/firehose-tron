@@ -62,7 +62,10 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
 
 	for _, endpoint := range rpcEndpoints {
-		client := rpc.NewTronClient(endpoint, apiKey)
+		client, err := rpc.NewTronClient(endpoint, apiKey)
+		if err != nil {
+			return fmt.Errorf("failed to create Tron client for endpoint %q: %w", endpoint, err)
+		}
 		tronClients.Add(client)
 	}
 

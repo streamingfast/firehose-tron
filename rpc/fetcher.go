@@ -10,7 +10,6 @@ import (
 	"time"
 
 	pbbstream "github.com/streamingfast/bstream/pb/sf/bstream/v1"
-	"github.com/streamingfast/cli"
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/firehose-core/blockpoller"
 	firecoreRPC "github.com/streamingfast/firehose-core/rpc"
@@ -47,10 +46,10 @@ func (c *apiKeyCredentials) RequireTransportSecurity() bool {
 	return false
 }
 
-func NewTronClient(endpointURL string, apiKey string) pbtronapi.WalletClient {
+func NewTronClient(endpointURL string, apiKey string) (pbtronapi.WalletClient, error) {
 	parsedURL, err := url.Parse(endpointURL)
 	if err != nil {
-		panic(fmt.Sprintf("Failed to parse endpoint URL %q: %v", endpointURL, err))
+		return nil, fmt.Errorf("failed to parse endpoint URL %q: %w", endpointURL, err)
 	}
 
 	var grpcOptions []grpc.DialOption
@@ -88,9 +87,11 @@ func NewTronClient(endpointURL string, apiKey string) pbtronapi.WalletClient {
 	}
 
 	conn, err := dgrpc.NewExternalClientConn(hostWithPort, grpcOptions...)
-	cli.NoError(err, "Failed to create client connection")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create client connection: %w", err)
+	}
 
-	return pbtronapi.NewWalletClient(conn)
+	return pbtronapi.NewWalletClient(conn), nil
 }
 
 func NewFetcher(
