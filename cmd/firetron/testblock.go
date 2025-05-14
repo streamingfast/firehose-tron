@@ -74,7 +74,10 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 
 	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient]()
 	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
-	client := rpc.NewTronClient(rpcEndpoint, apiKey)
+	client, err := rpc.NewTronClient(rpcEndpoint, apiKey)
+	if err != nil {
+		return fmt.Errorf("failed to create Tron client: %w", err)
+	}
 	tronClients.Add(client)
 
 	// Create Tron clients with all endpoints
