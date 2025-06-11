@@ -77,6 +77,10 @@ func (f *EVMFetcher) Fetch(ctx context.Context, client *ethRPC.Client, requestBl
 			return out, nil
 		},
 	)
+	if err != nil {
+		return nil, false, err
+	}
+
 	if requestBlockNum != 0 {
 		tronTransactions := make(map[string]*pbtron.Transaction)
 		for _, trx := range tronBlock.Transactions {
