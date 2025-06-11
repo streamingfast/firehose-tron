@@ -14,7 +14,8 @@ require (
 	github.com/streamingfast/dgrpc v0.0.0-20250423172640-223250ed2391
 	github.com/streamingfast/eth-go v0.0.0-20250611141046-926b93a01cbb
 	github.com/streamingfast/firehose-core v1.9.11-0.20250611153121-caf831699a88
-	github.com/streamingfast/firehose-ethereum v1.4.23-0.20250611153728-4f9a93bc93de
+	github.com/streamingfast/firehose-ethereum v1.4.23-0.20250611182355-7b5f2324a8e8
+	github.com/streamingfast/firehose-ethereum/types v0.0.0-20250507011806-81dc82780367
 	github.com/streamingfast/logging v0.0.0-20230608130331-f22c91403091
 	github.com/streamingfast/tron-protocol v0.0.0-20250429233815-6cfb1a24646c
 	github.com/stretchr/testify v1.10.0
@@ -106,7 +107,6 @@ require (
 	github.com/streamingfast/dhammer v0.0.0-20230125192823-c34bbd561bd4 // indirect
 	github.com/streamingfast/dmetrics v0.0.0-20250425183830-ffcef0cc9f87 // indirect
 	github.com/streamingfast/dstore v0.1.1-0.20250609173504-95368d3441ee // indirect
-	github.com/streamingfast/firehose-ethereum/types v0.0.0-20250507011806-81dc82780367 // indirect
 	github.com/streamingfast/opaque v0.0.0-20210811180740-0c01d37ea308 // indirect
 	github.com/streamingfast/pbgo v0.0.6-0.20250114182320-0b43084f4000 // indirect
 	github.com/streamingfast/shutter v1.5.0 // indirect
@@ -143,5 +143,3 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
-
-replace github.com/streamingfast/firehose-ethereum => /Users/stepd/repos/firehose-ethereum
