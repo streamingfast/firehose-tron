@@ -77,28 +77,30 @@ func (f *EVMFetcher) Fetch(ctx context.Context, client *ethRPC.Client, requestBl
 			return out, nil
 		},
 	)
-	tronTransactions := make(map[string]*pbtron.Transaction)
-	for _, trx := range tronBlock.Transactions {
-		tronTransactions[eth.Hash(trx.Info.Id).String()] = trx
-	}
-	block.Header.LogsBloom = nil // unused in Tron
-	cumulativeGasUsed := uint64(0)
-	for _, trx := range block.TransactionTraces {
-		tronTrx := tronTransactions[eth.Hash(trx.Hash).String()]
-		if tronTrx == nil {
-			panic(fmt.Sprintf("trx %q not found in tron block: this shouldn't happen", eth.Hash(trx.Hash).String()))
+	if requestBlockNum != 0 {
+		tronTransactions := make(map[string]*pbtron.Transaction)
+		for _, trx := range tronBlock.Transactions {
+			tronTransactions[eth.Hash(trx.Info.Id).String()] = trx
 		}
-		trx.GasUsed = uint64(tronTrx.Info.Receipt.EnergyUsageTotal)
-		cumulativeGasUsed += trx.GasUsed
-		trx.Receipt.CumulativeGasUsed = cumulativeGasUsed
+		block.Header.LogsBloom = nil // unused in Tron
+		cumulativeGasUsed := uint64(0)
+		for _, trx := range block.TransactionTraces {
+			tronTrx := tronTransactions[eth.Hash(trx.Hash).String()]
+			if tronTrx == nil {
+				panic(fmt.Sprintf("trx %q not found in tron block: this shouldn't happen", eth.Hash(trx.Hash).String()))
+			}
+			trx.GasUsed = uint64(tronTrx.Info.Receipt.EnergyUsageTotal)
+			cumulativeGasUsed += trx.GasUsed
+			trx.Receipt.CumulativeGasUsed = cumulativeGasUsed
 
-		switch tronTrx.Info.Result {
-		case pbtroncore.TransactionInfo_SUCESS:
-			trx.Status = 1
-		case pbtroncore.TransactionInfo_FAILED:
-			trx.Status = 2
-		default:
-			panic("unsupported trx status")
+			switch tronTrx.Info.Result {
+			case pbtroncore.TransactionInfo_SUCESS:
+				trx.Status = 1
+			case pbtroncore.TransactionInfo_FAILED:
+				trx.Status = 2
+			default:
+				panic("unsupported trx status")
+			}
 		}
 	}
 
