@@ -17,6 +17,7 @@ import (
 	pbeth "github.com/streamingfast/firehose-ethereum/types/pb/sf/ethereum/type/v2"
 	pbtron "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1"
 	pbtronapi "github.com/streamingfast/tron-protocol/pb/api"
+	pbtroncore "github.com/streamingfast/tron-protocol/pb/core"
 	"go.uber.org/zap"
 	"google.golang.org/protobuf/types/known/anypb"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -80,19 +81,24 @@ func (f *EVMFetcher) Fetch(ctx context.Context, client *ethRPC.Client, requestBl
 	for _, trx := range tronBlock.Transactions {
 		tronTransactions[eth.Hash(trx.Info.Id).String()] = trx
 	}
+	block.Header.LogsBloom = nil // unused in Tron
 	cumulativeGasUsed := uint64(0)
 	for _, trx := range block.TransactionTraces {
 		tronTrx := tronTransactions[eth.Hash(trx.Hash).String()]
 		if tronTrx == nil {
 			panic(fmt.Sprintf("trx %q not found in tron block: this shouldn't happen", eth.Hash(trx.Hash).String()))
 		}
-		trx.GasUsed = uint64(tronTrx.EnergyUsed)
+		trx.GasUsed = uint64(tronTrx.Info.Receipt.EnergyUsageTotal)
 		cumulativeGasUsed += trx.GasUsed
 		trx.Receipt.CumulativeGasUsed = cumulativeGasUsed
-		if tronTrx.Result {
+
+		switch tronTrx.Info.Result {
+		case pbtroncore.TransactionInfo_SUCESS:
 			trx.Status = 1
-		} else {
+		case pbtroncore.TransactionInfo_FAILED:
 			trx.Status = 2
+		default:
+			panic("unsupported trx status")
 		}
 	}
 
