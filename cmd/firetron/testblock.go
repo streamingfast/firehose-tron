@@ -81,7 +81,7 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 	tronClients.Add(client)
 
 	// Create Tron clients with all endpoints
-	fetcher := rpc.NewFetcher(tronClients, intervalBetweenFetch, latestBlockRetryInterval, logger)
+	fetcher := rpc.NewFetcher(intervalBetweenFetch, latestBlockRetryInterval, logger)
 
 	// Process blocks in batches
 	for currentBlock := startBlock; currentBlock <= endBlock; currentBlock += uint64(batchSize) {

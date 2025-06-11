@@ -12,7 +12,6 @@ import (
 	pbbstream "github.com/streamingfast/bstream/pb/sf/bstream/v1"
 	"github.com/streamingfast/dgrpc"
 	"github.com/streamingfast/firehose-core/blockpoller"
-	firecoreRPC "github.com/streamingfast/firehose-core/rpc"
 	pbtron "github.com/streamingfast/firehose-tron/pb/sf/tron/type/v1"
 	pbtronapi "github.com/streamingfast/tron-protocol/pb/api"
 	pbtroncore "github.com/streamingfast/tron-protocol/pb/core"
@@ -25,7 +24,6 @@ import (
 var _ blockpoller.BlockFetcher[pbtronapi.WalletClient] = (*Fetcher)(nil)
 
 type Fetcher struct {
-	clients                  *firecoreRPC.Clients[pbtronapi.WalletClient]
 	fetchInterval            time.Duration
 	latestBlockRetryInterval time.Duration
 	logger                   *zap.Logger
@@ -95,13 +93,11 @@ func NewTronClient(endpointURL string, apiKey string) (pbtronapi.WalletClient, e
 }
 
 func NewFetcher(
-	clients *firecoreRPC.Clients[pbtronapi.WalletClient],
 	fetchInterval time.Duration,
 	latestBlockRetryInterval time.Duration,
 	logger *zap.Logger,
 ) *Fetcher {
 	return &Fetcher{
-		clients:                  clients,
 		fetchInterval:            fetchInterval,
 		latestBlockRetryInterval: latestBlockRetryInterval,
 		logger:                   logger,

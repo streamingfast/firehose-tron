@@ -70,7 +70,7 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	}
 
 	// Create Tron clients with all endpoints
-	fetcher := rpc.NewFetcher(tronClients, fetchInterval, latestBlockRetryInterval, logger)
+	fetcher := rpc.NewFetcher(fetchInterval, latestBlockRetryInterval, logger)
 
 	rpcFetcher := fetcher
 
