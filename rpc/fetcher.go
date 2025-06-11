@@ -109,6 +109,16 @@ func (f *Fetcher) IsBlockAvailable(blockNum uint64) bool {
 }
 
 func (f *Fetcher) Fetch(ctx context.Context, client pbtronapi.WalletClient, requestBlockNum uint64) (b *pbbstream.Block, skipped bool, err error) {
+	block, err := f.fetch(ctx, client, requestBlockNum)
+	if err != nil {
+		return nil, false, fmt.Errorf("fetching block: %w", err)
+	}
+
+	// Convert to pbbstream.Block format
+	return convertBlock(block)
+}
+
+func (f *Fetcher) fetch(ctx context.Context, client pbtronapi.WalletClient, requestBlockNum uint64) (b *pbtron.Block, err error) {
 	f.logger.Info("fetching block", zap.Uint64("block_num", requestBlockNum))
 
 	sleepDuration := time.Duration(0)
@@ -117,7 +127,7 @@ func (f *Fetcher) Fetch(ctx context.Context, client pbtronapi.WalletClient, requ
 
 		f.latestBlockNum, err = f.fetchLatestBlockNum(ctx, client)
 		if err != nil {
-			return nil, false, fmt.Errorf("fetching latest block num: %w", err)
+			return nil, fmt.Errorf("fetching latest block num: %w", err)
 		}
 
 		f.logger.Info("got latest block num", zap.Int64("latest_block_num", f.latestBlockNum), zap.Uint64("requested_block_num", requestBlockNum))
@@ -131,31 +141,26 @@ func (f *Fetcher) Fetch(ctx context.Context, client pbtronapi.WalletClient, requ
 	// Fetch block data
 	blockExt, err := getBlock(ctx, client, int64(requestBlockNum))
 	if err != nil {
-		return nil, false, fmt.Errorf("getting block: %w", err)
+		return nil, fmt.Errorf("getting block: %w", err)
 	}
 
 	transactionInfoList, err := getTransactionInfoByBlockNum(ctx, client, uint64(requestBlockNum))
 	if err != nil {
-		return nil, false, fmt.Errorf("getting transaction info: %w", err)
+		return nil, fmt.Errorf("getting transaction info: %w", err)
 	}
 
 	areTransactionsIntegral, err := verifyTransactionsIntegrity(blockExt.Transactions, transactionInfoList.TransactionInfo)
 	if err != nil {
-		return nil, false, fmt.Errorf("verifying transactions integrity: %w", err)
+		return nil, fmt.Errorf("verifying transactions integrity: %w", err)
 	}
 
 	if !areTransactionsIntegral {
-		return nil, false, fmt.Errorf("transactions are not integral")
+		return nil, fmt.Errorf("transactions are not integral")
 	}
 
 	// Convert block extension and transaction info list to our block type
-	block, err := convertBlockAndTransactionsToBlock(blockExt, transactionInfoList)
-	if err != nil {
-		return nil, false, fmt.Errorf("converting block: %w", err)
-	}
+	return convertBlockAndTransactionsToBlock(blockExt, transactionInfoList)
 
-	// Convert to pbbstream.Block format
-	return convertBlock(block)
 }
 
 func getBlock(ctx context.Context, client pbtronapi.WalletClient, blockNum int64) (*pbtronapi.BlockExtention, error) {

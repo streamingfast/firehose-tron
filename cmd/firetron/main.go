@@ -22,6 +22,7 @@ func main() {
 		ConfigureViper("FIRETRON"),
 
 		FetchCommand,
+		FetchEVMCommand,
 		TestBlockCommand,
 
 		OnCommandErrorLogAndExit(logger),
