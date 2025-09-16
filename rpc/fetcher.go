@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	pbbstream "github.com/streamingfast/bstream/pb/sf/bstream/v1"
@@ -44,7 +45,15 @@ func (c *apiKeyCredentials) RequireTransportSecurity() bool {
 	return false
 }
 
-func NewTronClient(endpointURL string, apiKey string) (pbtronapi.WalletClient, error) {
+func NewTronClient(endpointURL string, apiKey string, plaintext, insecure bool) (pbtronapi.WalletClient, error) {
+	if !strings.Contains(endpointURL, "http://") && !strings.Contains(endpointURL, "https://") {
+		if plaintext {
+			endpointURL = "http://" + endpointURL
+		} else {
+			endpointURL = "https://" + endpointURL
+		}
+	}
+
 	parsedURL, err := url.Parse(endpointURL)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse endpoint URL %q: %w", endpointURL, err)
@@ -55,16 +64,15 @@ func NewTronClient(endpointURL string, apiKey string) (pbtronapi.WalletClient, e
 
 	switch parsedURL.Scheme {
 	case "http":
-		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(true, false, false))
+		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, true, false))
 		port := parsedURL.Port()
 		if port == "" {
 			port = "80"
 		}
 		hostWithPort = parsedURL.Hostname() + ":" + port
 	case "https":
-		insecure := parsedURL.Query().Get("insecure") == "true"
 		if insecure {
-			grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, true, false))
+			grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(true, false, false))
 		} else {
 			grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, false, false))
 		}
@@ -73,11 +81,6 @@ func NewTronClient(endpointURL string, apiKey string) (pbtronapi.WalletClient, e
 			port = "443"
 		}
 		hostWithPort = parsedURL.Hostname() + ":" + port
-	default:
-		// Default to previous behavior if scheme is not http or https, or is missing
-		// This maintains backward compatibility for host:port style endpoints
-		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, true, false))
-		hostWithPort = endpointURL
 	}
 
 	if apiKey != "" {

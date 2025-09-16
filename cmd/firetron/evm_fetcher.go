@@ -23,9 +23,11 @@ var FetchEVMCommand = Command(fetchEVME,
 	ExactArgs(1),
 	Flags(func(flags *pflag.FlagSet) {
 		flags.StringArray("tron-evm-endpoints", []string{""}, "List of endpoints to use to fetch different method calls")
-		flags.StringArray("tron-endpoints", []string{""}, "List of endpoints to use to fetch different method calls")
+		flags.StringArray("tron-endpoints", []string{""}, "List of endpoints to use to fetch different method calls (supports http:// or https:// prefix)")
 		flags.String("tron-api-key", "", "Tron API key for RPC access")
 		flags.String("state-dir", "/data/poller", "Directory to store state information")
+		flags.Bool("plaintext", false, "Use plaintext connection as default for endpoints without an http:// or https:// prefix.")
+		flags.Bool("insecure", false, "Skip certificate validation when using https://")
 		flags.Duration("interval-between-fetch", 0, "Interval between fetch operations")
 		flags.Duration("latest-block-retry-interval", time.Second, "Interval between retries when fetching latest block")
 		flags.Int("block-fetch-batch-size", 10, "Number of blocks to fetch in a single batch")
@@ -54,6 +56,8 @@ func fetchEVME(cmd *cobra.Command, args []string) error {
 	fetchInterval := sflags.MustGetDuration(cmd, "interval-between-fetch")
 	latestBlockRetryInterval := sflags.MustGetDuration(cmd, "latest-block-retry-interval")
 	maxBlockFetchDuration := sflags.MustGetDuration(cmd, "max-block-fetch-duration")
+	insecure := sflags.MustGetBool(cmd, "insecure")
+	plaintext := sflags.MustGetBool(cmd, "plaintext")
 
 	logger.Info("launching Tron EVM poller",
 		zap.Strings("rpc_endpoints", rpcEndpoints),
@@ -63,13 +67,15 @@ func fetchEVME(cmd *cobra.Command, args []string) error {
 		zap.Duration("interval_between_fetch", fetchInterval),
 		zap.Duration("latest_block_retry_interval", latestBlockRetryInterval),
 		zap.Duration("max_block_fetch_duration", maxBlockFetchDuration),
+		zap.Bool("default_plaintext", plaintext),
+		zap.Bool("insecure", insecure),
 	)
 
 	// Create Tron clients with all endpoints
 	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient]()
 	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
 	for _, endpoint := range rpcEndpoints {
-		client, err := rpc.NewTronClient(endpoint, apiKey)
+		client, err := rpc.NewTronClient(endpoint, apiKey, plaintext, insecure)
 		if err != nil {
 			return fmt.Errorf("failed to create Tron client for endpoint %q: %w", endpoint, err)
 		}

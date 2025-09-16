@@ -24,7 +24,7 @@ var TestBlockCommand = Command(testBlockE,
 	"Test Tron block fetcher for a range of blocks",
 	ExactArgs(2),
 	Flags(func(flags *pflag.FlagSet) {
-		flags.String("rpc-endpoint", "grpc.trongrid.io:50051", "Tron RPC endpoint")
+		flags.String("rpc-endpoint", "grpc.trongrid.io:50051", "Tron RPC endpoint (supports http:// or https:// prefix)")
 		flags.String("tron-api-key", "", "Tron API key for RPC access")
 		flags.String("state-dir", "/data/poller", "Directory to store state information")
 		flags.Duration("interval-between-fetch", 100*time.Millisecond, "Interval between block fetches (default: 100ms to stay under 15qps limit)")
@@ -32,6 +32,8 @@ var TestBlockCommand = Command(testBlockE,
 		flags.Int("block-fetch-batch-size", 10, "Number of blocks to fetch in a single batch")
 		flags.Duration("max-block-fetch-duration", 3*time.Second, "Maximum delay before considering a block fetch as failed")
 		flags.Int("max-requests-per-second", 14, "Maximum requests per second to TronGrid API (default: 14 to stay under 15qps limit)")
+		flags.Bool("plaintext", false, "Use plaintext connection as default for endpoints without an http:// or https:// prefix.")
+		flags.Bool("insecure", false, "Skip certificate validation when using https://")
 	}),
 )
 
@@ -57,6 +59,8 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 	batchSize, _ := cmd.Flags().GetInt("block-fetch-batch-size")
 	maxBlockFetchDuration, _ := cmd.Flags().GetDuration("max-block-fetch-duration")
 	maxRPS, _ := cmd.Flags().GetInt("max-requests-per-second")
+	plaintext, _ := cmd.Flags().GetBool("plaintext")
+	insecure, _ := cmd.Flags().GetBool("insecure")
 
 	// Create rate limiter
 	limiter := rate.NewLimiter(rate.Limit(maxRPS), 1)
@@ -70,11 +74,13 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 		zap.Int("batch_size", batchSize),
 		zap.Duration("max_block_fetch_duration", maxBlockFetchDuration),
 		zap.Int("max_requests_per_second", maxRPS),
+		zap.Bool("default_plaintext", plaintext),
+		zap.Bool("insecure", insecure),
 	)
 
 	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient]()
 	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
-	client, err := rpc.NewTronClient(rpcEndpoint, apiKey)
+	client, err := rpc.NewTronClient(rpcEndpoint, apiKey, plaintext, insecure)
 	if err != nil {
 		return fmt.Errorf("failed to create Tron client: %w", err)
 	}
