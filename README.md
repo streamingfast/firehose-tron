@@ -7,7 +7,9 @@ The Firehose for TRON project (`firetron` CLI) includes the following commands:
 - `firetron fetch-evm`: Pulls blocks from an RPC endpoint and converts them to an EVM-compatible Firehose block format, to be consumed by [fireeth](https://github.com/streamingfast/firehose-ethereum).
 - `firetron test-block`: Used for testing block fetching.
 
-The Firehose TRON currently **does not handle block persistence or merging by itself**. It only implements the *reader* logic, fetching blocks from a TRON node and emitting a Firehose-compatible data through `stdout`. The `firetron fetch/fetch-evm` commands aren't expected to be run standalone and instead they are expected to by spin up from `firecore/fireeth start ...`. To enable persistence (`one-block` files) and bundle merging (`merged-blocks`), you need to run `firetron` **as the reader-node** inside **firecore**, which provides the rest of the Firehose/Substreams pipeline:
+The Firehose TRON **does not handle block persistence or merging by itself**. 
+
+It only implements the *reader* logic, fetching blocks from a TRON node and emitting a Firehose-compatible data through `stdout`. The `firetron fetch/fetch-evm` commands aren't expected to be run standalone and instead they are expected to by spin up from `firecore/fireeth start ...`. To enable persistence (`one-block` files) and bundle merging (`merged-blocks`), you need to run `firetron` **as the reader-node** inside **firecore**, which provides the rest of the Firehose/Substreams pipeline:
 
 - `reader-node` → Runs `firetron fetch ...` and writes one-blocks
 - `merger` → Merges one-blocks into merged-blocks
