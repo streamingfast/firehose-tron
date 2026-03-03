@@ -38,6 +38,7 @@ type apiKeyCredentials struct {
 func (c *apiKeyCredentials) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
 	return map[string]string{
 		"TRON-PRO-API-KEY": c.apiKey,
+		"x-token":          c.apiKey,
 	}, nil
 }
 
