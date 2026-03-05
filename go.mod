@@ -17,7 +17,7 @@ require (
 	github.com/streamingfast/firehose-ethereum v1.4.23-0.20250611182355-7b5f2324a8e8
 	github.com/streamingfast/firehose-ethereum/types v0.0.0-20250507011806-81dc82780367
 	github.com/streamingfast/logging v0.0.0-20230608130331-f22c91403091
-	github.com/streamingfast/tron-protocol v0.0.0-20250429233815-6cfb1a24646c
+	github.com/streamingfast/tron-protocol v0.0.0-20260304102118-2b02c48fa343
 	github.com/stretchr/testify v1.10.0
 	go.uber.org/zap v1.27.0
 	golang.org/x/time v0.11.0

@@ -9,7 +9,7 @@ The Firehose for TRON project (`firetron` CLI) includes the following commands:
 
 The Firehose TRON **does not handle block persistence or merging by itself**. 
 
-It only implements the *reader* logic, fetching blocks from a TRON node and emitting a Firehose-compatible data through `stdout`. The `firetron fetch/fetch-evm` commands aren't expected to be run standalone and instead they are expected to by spin up from `firecore/fireeth start ...`. To enable persistence (`one-block` files) and bundle merging (`merged-blocks`), you need to run `firetron` **as the reader-node** inside **firecore**, which provides the rest of the Firehose/Substreams pipeline:
+It only implements the *reader* logic, fetching blocks from a TRON node and emitting a Firehose-compatible data through `stdout`. The `firetron fetch/fetch-evm` commands aren't expected to be ran standalone and instead they are expected to spin up from `firecore/fireeth start ...`. To enable persistence (`one-block` files) and bundle merging (`merged-blocks`), you need to run `firetron` **as the reader-node** inside **firecore**, which provides the rest of the Firehose/Substreams pipeline:
 
 - `reader-node` → Runs `firetron fetch ...` and writes one-blocks
 - `merger` → Merges one-blocks into merged-blocks
@@ -19,17 +19,24 @@ It only implements the *reader* logic, fetching blocks from a TRON node and emit
 
 ### Example
 
-1. **Use `firetron fetch` as the reader-node**  
+1. **Create firecore config with firetron as reader-node**
    In `sf-tron-mainnet.yaml`:
 
    ```yaml
-   # `firetron` is expected to be found in your PATH, use absolute path if it's not the case
-   reader-node-path: firetron
-   reader-node-arguments: |
-     fetch <start_block>
-     --state-dir=/data/tron/firehose/state
-     --interval-between-fetch=50ms
-     --tron-endpoints=http://127.0.0.1:50051
+   start:
+     args:
+     - reader-node
+     - merger
+     - relayer
+     - firehose
+     flags:
+       # `firetron` is expected to be found in your PATH, use absolute path if it's not the case
+       reader-node-path: firetron
+       reader-node-arguments: |
+         fetch {first-streamable-block}
+         --state-dir=/data/tron/firehose/state
+         --interval-between-fetch=50ms
+         --tron-endpoints=http://127.0.0.1:50051
 
 2.	Let firecore run the full pipeline
 
