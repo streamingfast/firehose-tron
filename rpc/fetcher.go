@@ -6,8 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"net/url"
-	"strings"
 	"time"
 
 	pbbstream "github.com/streamingfast/bstream/pb/sf/bstream/v1"
@@ -46,49 +44,22 @@ func (c *apiKeyCredentials) RequireTransportSecurity() bool {
 	return false
 }
 
-func NewTronClient(endpointURL string, apiKey string, plaintext, insecure bool) (pbtronapi.WalletClient, error) {
-	if !strings.Contains(endpointURL, "http://") && !strings.Contains(endpointURL, "https://") {
-		if plaintext {
-			endpointURL = "http://" + endpointURL
-		} else {
-			endpointURL = "https://" + endpointURL
-		}
-	}
-
-	parsedURL, err := url.Parse(endpointURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse endpoint URL %q: %w", endpointURL, err)
-	}
-
+func NewTronClient(endpoint Endpoint) (pbtronapi.WalletClient, error) {
 	var grpcOptions []grpc.DialOption
-	var hostWithPort string
 
-	switch parsedURL.Scheme {
-	case "http":
+	if endpoint.Plaintext() {
 		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, true, false))
-		port := parsedURL.Port()
-		if port == "" {
-			port = "80"
-		}
-		hostWithPort = parsedURL.Hostname() + ":" + port
-	case "https":
-		if insecure {
-			grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(true, false, false))
-		} else {
-			grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, false, false))
-		}
-		port := parsedURL.Port()
-		if port == "" {
-			port = "443"
-		}
-		hostWithPort = parsedURL.Hostname() + ":" + port
+	} else if endpoint.Insecure {
+		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(true, false, false))
+	} else {
+		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, false, false))
 	}
 
-	if apiKey != "" {
-		grpcOptions = append(grpcOptions, grpc.WithPerRPCCredentials(&apiKeyCredentials{apiKey: apiKey}))
+	if endpoint.APIKey != "" {
+		grpcOptions = append(grpcOptions, grpc.WithPerRPCCredentials(&apiKeyCredentials{apiKey: endpoint.APIKey}))
 	}
 
-	conn, err := dgrpc.NewExternalClientConn(hostWithPort, grpcOptions...)
+	conn, err := dgrpc.NewExternalClientConn(endpoint.DialTarget(), grpcOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client connection: %w", err)
 	}
