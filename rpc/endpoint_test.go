@@ -158,3 +158,45 @@ func TestEndpointStringNoKey(t *testing.T) {
 	assert.NotContains(t, s, "apiKey")
 	assert.Contains(t, s, "host.io")
 }
+
+func TestParseEndpointErrorDoesNotLeakKey(t *testing.T) {
+	_, err := ParseEndpoint("https://host.io:notaport?apiKey=SUPERSECRET", "")
+	require.Error(t, err)
+	assert.NotContains(t, err.Error(), "SUPERSECRET")
+	assert.Contains(t, err.Error(), "<redacted>")
+}
+
+func TestRedactRawURL(t *testing.T) {
+	tests := []struct {
+		name   string
+		raw    string
+		expect string
+	}{
+		{
+			name:   "key present with trailing param",
+			raw:    "https://host.io?apiKey=SECRET&other=x",
+			expect: "https://host.io?apiKey=<redacted>&other=x",
+		},
+		{
+			name:   "key present as sole param",
+			raw:    "https://host.io?apiKey=SECRET",
+			expect: "https://host.io?apiKey=<redacted>",
+		},
+		{
+			name:   "no key unchanged",
+			raw:    "https://host.io?other=x",
+			expect: "https://host.io?other=x",
+		},
+		{
+			name:   "env var literal redacted",
+			raw:    "https://host.io?apiKey=${RPC_KEY}",
+			expect: "https://host.io?apiKey=<redacted>",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expect, RedactRawURL(tt.raw))
+		})
+	}
+}

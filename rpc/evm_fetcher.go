@@ -26,9 +26,7 @@ import (
 var _ blockpoller.BlockFetcher[*ethRPC.Client] = (*EVMFetcher)(nil)
 
 type EVMFetcher struct {
-	fetchInterval            time.Duration
-	latestBlockRetryInterval time.Duration
-	logger                   *zap.Logger
+	logger *zap.Logger
 
 	tronClients *firecoreRPC.Clients[pbtronapi.WalletClient]
 	tronFetcher *Fetcher
@@ -47,12 +45,10 @@ func NewEVMFetcher(
 	evmFetcher.SkipReceipts(true) // we set 0 parallel transaction fetchers and skip receipts, so that it uses getLogs() instead
 
 	return &EVMFetcher{
-		fetchInterval:            fetchInterval,
-		latestBlockRetryInterval: latestBlockRetryInterval,
-		logger:                   logger,
-		tronClients:              tronClients,
-		tronFetcher:              tronFetcher,
-		evmFetcher:               evmFetcher,
+		logger:      logger,
+		tronClients: tronClients,
+		tronFetcher: tronFetcher,
+		evmFetcher:  evmFetcher,
 	}
 }
 
@@ -61,8 +57,6 @@ func (f *EVMFetcher) IsBlockAvailable(blockNum uint64) bool {
 }
 
 func (f *EVMFetcher) Fetch(ctx context.Context, client *ethRPC.Client, requestBlockNum uint64) (b *pbbstream.Block, skipped bool, err error) {
-	f.logger.Debug("test logger")
-
 	block, err := f.evmFetcher.FetchPBEth(ctx, client, requestBlockNum)
 	if err != nil {
 		return nil, false, err

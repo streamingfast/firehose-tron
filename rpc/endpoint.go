@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -37,7 +38,10 @@ func ParseEndpoint(rawURL, defaultAPIKey string) (Endpoint, error) {
 
 	parsed, err := url.Parse(expanded)
 	if err != nil {
-		return Endpoint{}, fmt.Errorf("parse endpoint %q: %w", expanded, err)
+		// url.Error.Error() embeds the raw URL a second time (e.g. `parse
+		// "<raw>": invalid port ...`), so redacting only our own %q above is
+		// not enough: the underlying error's message must be scrubbed too.
+		return Endpoint{}, fmt.Errorf("parse endpoint %q: %s", RedactRawURL(expanded), strings.ReplaceAll(err.Error(), expanded, RedactRawURL(expanded)))
 	}
 
 	query := parsed.Query()
@@ -100,6 +104,14 @@ func (e Endpoint) DialTarget() string {
 func (e Endpoint) Plaintext() bool {
 	return e.URL.Scheme == "http"
 }
+
+// RedactRawURL masks the apiKey query value in a raw (possibly unparseable)
+// URL string so it can appear safely in error messages and logs.
+func RedactRawURL(raw string) string {
+	return apiKeyRedactRegexp.ReplaceAllString(raw, "${1}<redacted>")
+}
+
+var apiKeyRedactRegexp = regexp.MustCompile(`([?&]apiKey=)[^&]*`)
 
 // String renders the endpoint for logging with the API key redacted.
 func (e Endpoint) String() string {

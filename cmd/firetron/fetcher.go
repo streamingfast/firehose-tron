@@ -78,10 +78,8 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	// Create Tron clients with all endpoints
 	fetcher := rpc.NewFetcher(fetchInterval, latestBlockRetryInterval, logger)
 
-	rpcFetcher := fetcher
-
 	poller := blockpoller.New(
-		rpcFetcher,
+		fetcher,
 		blockpoller.NewFireBlockHandler(blockTypeURL()),
 		tronClients,
 		blockpoller.WithStoringState[pbtronapi.WalletClient](stateDir),
@@ -113,7 +111,7 @@ func parseTronEndpoints(rawEndpoints []string, defaultAPIKey string) ([]rpc.Endp
 	for _, raw := range rawEndpoints {
 		ep, err := rpc.ParseEndpoint(raw, defaultAPIKey)
 		if err != nil {
-			return nil, fmt.Errorf("parse tron endpoint %q: %w", raw, err)
+			return nil, fmt.Errorf("parse tron endpoint %q: %w", rpc.RedactRawURL(raw), err)
 		}
 		endpoints = append(endpoints, ep)
 	}

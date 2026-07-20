@@ -63,7 +63,7 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 
 	endpoint, err := rpc.ParseEndpoint(rpcEndpoint, apiKey)
 	if err != nil {
-		return fmt.Errorf("parsing endpoint %q: %w", rpcEndpoint, err)
+		return fmt.Errorf("parsing endpoint %q: %w", rpc.RedactRawURL(rpcEndpoint), err)
 	}
 
 	logger.Info("testing block range conversion",

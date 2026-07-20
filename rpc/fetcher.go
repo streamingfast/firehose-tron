@@ -135,7 +135,7 @@ func (f *Fetcher) fetchLatestBlockNumUntil(ctx context.Context, client pbtronapi
 		var err error
 		f.latestBlockNum, err = f.fetchLatestBlockNum(ctx, client)
 		if err != nil {
-			return 0, fmt.Errorf("fetching latest block num: %w", err)
+			return 0, fmt.Errorf("waiting for latest block num: %w", err)
 		}
 
 		f.logger.Info("got latest block num", zap.Int64("latest_block_num", f.latestBlockNum), zap.Int64("requested_block_num", target))

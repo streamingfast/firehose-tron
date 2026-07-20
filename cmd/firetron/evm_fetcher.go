@@ -59,7 +59,7 @@ func fetchEVME(cmd *cobra.Command, args []string) error {
 	for _, raw := range evmRpcEndpoints {
 		ep, err := rpc.ParseEndpoint(raw, apiKey)
 		if err != nil {
-			return fmt.Errorf("parse tron-evm endpoint %q: %w", raw, err)
+			return fmt.Errorf("parse tron-evm endpoint %q: %w", rpc.RedactRawURL(raw), err)
 		}
 		evmParsed = append(evmParsed, ep)
 	}
@@ -108,7 +108,7 @@ func fetchEVME(cmd *cobra.Command, args []string) error {
 	}
 
 	// EVM block fetcher
-	evmFetcher := rpc.NewEVMFetcher(tronClients, tronFetcher, fetchInterval, latestBlockRetryInterval, logger) //
+	evmFetcher := rpc.NewEVMFetcher(tronClients, tronFetcher, fetchInterval, latestBlockRetryInterval, logger)
 
 	poller := blockpoller.New(
 		evmFetcher,
