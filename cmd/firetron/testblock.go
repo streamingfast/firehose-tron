@@ -61,10 +61,15 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 	// Create rate limiter
 	limiter := rate.NewLimiter(rate.Limit(maxRPS), 1)
 
+	endpoint, err := rpc.ParseEndpoint(rpcEndpoint, apiKey)
+	if err != nil {
+		return fmt.Errorf("parsing endpoint %q: %w", rpcEndpoint, err)
+	}
+
 	logger.Info("testing block range conversion",
 		zap.Uint64("start_block", startBlock),
 		zap.Uint64("end_block", endBlock),
-		zap.String("rpc_endpoint", rpcEndpoint),
+		zap.String("rpc_endpoint", endpoint.String()),
 		zap.Duration("interval_between_fetch", intervalBetweenFetch),
 		zap.Duration("latest_block_retry_interval", latestBlockRetryInterval),
 		zap.Int("batch_size", batchSize),
@@ -74,10 +79,6 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 
 	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient]()
 	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
-	endpoint, err := rpc.ParseEndpoint(rpcEndpoint, apiKey)
-	if err != nil {
-		return fmt.Errorf("parsing endpoint %q: %w", rpcEndpoint, err)
-	}
 	client, err := rpc.NewTronClient(endpoint)
 	if err != nil {
 		return fmt.Errorf("failed to create Tron client: %w", err)
