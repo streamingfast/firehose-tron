@@ -1,6 +1,6 @@
 module github.com/streamingfast/firehose-tron
 
-go 1.24.2
+go 1.25
 
 replace github.com/jhump/protoreflect => github.com/streamingfast/protoreflect v0.0.0-20231205191344-4b629d20ce8d
 
