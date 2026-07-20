@@ -59,5 +59,23 @@ firetron fetch 75748000 --state-dir /persistent/path --block-fetch-batch-size=1 
 firetron fetch-evm 0 --tron-evm-endpoints=https://provider/jsonrpc --block-fetch-batch-size=1 --interval-between-fetch=1s --tron-endpoints=http://tron.grpc.endpoint:12345 --state-dir=/persistent/path --tron-api-key=xxxxxxx
 ```
 
+### Per-endpoint API keys
+
+`--tron-endpoints` and `--tron-evm-endpoints` accept a per-endpoint API key, so you
+can configure two (or more) providers that each require a different key and get
+real fallback between them:
+
+```
+firetron fetch 0 \
+  --tron-endpoints 'https://provider-a.io?apiKey=${PROVIDER_A_KEY}' \
+  --tron-endpoints 'https://provider-b.io?apiKey=${PROVIDER_B_KEY}'
+```
+
+Endpoint URL conventions:
+- `--tron-api-key` still works as the default key for any endpoint that does not carry its own.
+- `http://` on an endpoint selects plaintext (no scheme defaults to `https://`).
+- `?insecure=true` on an endpoint skips TLS certificate validation.
+- `${ENV}` interpolation is supported in endpoint values, e.g. `${QUICKNODE_RPC_URL}?apiKey=${QUICKNODE_API_KEY}`.
+
 > [!NOTE]
 > To be wrapped by `firecore/fireeth`, see [Example](#example) section for details.
