@@ -23,6 +23,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Minimum Go version is now 1.25.
 - Endpoints are redacted (API key replaced with `<redacted>`) in startup logs.
 
+### Deprecated
+
+- The `--tron-api-key` flag (on `fetch`, `fetch-evm`, and `test-block`). It
+  still works as the default key for endpoints without their own, but using it
+  now logs a warning; move the key into each endpoint URL as
+  `?apiKey=${YOUR_KEY}` instead. The flag will be removed in a future release.
+
 ### Removed
 
 - The `--plaintext` and `--insecure` flags. Use an `http://` endpoint for

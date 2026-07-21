@@ -26,7 +26,7 @@ var FetchEVMCommand = Command(fetchEVME,
 	Flags(func(flags *pflag.FlagSet) {
 		flags.StringArray("tron-evm-endpoints", nil, "List of EVM (JSON-RPC) endpoints; each may carry its own key via ?apiKey=..., skip TLS validation via ?insecure=true, and supports ${ENV} interpolation")
 		flags.StringArray("tron-endpoints", nil, "List of Tron gRPC endpoints; each may carry its own key via ?apiKey=..., skip TLS validation via ?insecure=true, use http:// for plaintext, and supports ${ENV} interpolation")
-		flags.String("tron-api-key", "", "Tron API key for RPC access")
+		flags.String("tron-api-key", "", "DEPRECATED: default Tron API key applied to endpoints without their own; use ?apiKey=... in the endpoint URL instead (supports ${ENV}). Will be removed in a future release")
 		flags.String("state-dir", "/data/poller", "Directory to store state information")
 		flags.Duration("interval-between-fetch", 0, "Interval between fetch operations")
 		flags.Duration("latest-block-retry-interval", time.Second, "Interval between retries when fetching latest block")
@@ -40,6 +40,7 @@ func fetchEVME(cmd *cobra.Command, args []string) error {
 	evmRpcEndpoints := sflags.MustGetStringArray(cmd, "tron-evm-endpoints")
 
 	apiKey := sflags.MustGetString(cmd, "tron-api-key")
+	warnDeprecatedAPIKeyFlag(logger, apiKey)
 	stateDir := sflags.MustGetString(cmd, "state-dir")
 	startBlock, err := strconv.ParseUint(args[0], 10, 64)
 	if err != nil {

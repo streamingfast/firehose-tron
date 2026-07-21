@@ -23,7 +23,7 @@ var FetchCommand = Command(fetchE,
 	ExactArgs(1),
 	Flags(func(flags *pflag.FlagSet) {
 		flags.StringArray("tron-endpoints", nil, "List of endpoints to fetch from; each may carry its own key via ?apiKey=..., skip TLS validation via ?insecure=true, use http:// for plaintext, and supports ${ENV} interpolation")
-		flags.String("tron-api-key", "", "Tron API key for RPC access")
+		flags.String("tron-api-key", "", "DEPRECATED: default Tron API key applied to endpoints without their own; use ?apiKey=... in the endpoint URL instead (supports ${ENV}). Will be removed in a future release")
 		flags.String("state-dir", "/data/poller", "Directory to store state information")
 		flags.Duration("interval-between-fetch", 0, "Interval between fetch operations")
 		flags.Duration("latest-block-retry-interval", time.Second, "Interval between retries when fetching latest block")
@@ -36,6 +36,7 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	rpcEndpoints := sflags.MustGetStringArray(cmd, "tron-endpoints")
 
 	apiKey := sflags.MustGetString(cmd, "tron-api-key")
+	warnDeprecatedAPIKeyFlag(logger, apiKey)
 	stateDir := sflags.MustGetString(cmd, "state-dir")
 	startBlock, err := strconv.ParseUint(args[0], 10, 64)
 	if err != nil {
@@ -98,6 +99,14 @@ var blockTypeFullName = new(pbtron.Block).ProtoReflect().Descriptor().FullName()
 
 func blockTypeURL() string {
 	return "type.googleapis.com/" + string(blockTypeFullName)
+}
+
+// warnDeprecatedAPIKeyFlag logs a warning when the deprecated --tron-api-key
+// flag is used, pointing at the per-endpoint ?apiKey= replacement.
+func warnDeprecatedAPIKeyFlag(logger *zap.Logger, apiKey string) {
+	if apiKey != "" {
+		logger.Warn("the --tron-api-key flag is deprecated and will be removed in a future release; move the key into each endpoint URL as a query parameter instead, e.g. 'https://provider.io?apiKey=${YOUR_KEY}' (environment variables are interpolated)")
+	}
 }
 
 // parseTronEndpoints parses each raw endpoint into an rpc.Endpoint, applying

@@ -25,7 +25,7 @@ var TestBlockCommand = Command(testBlockE,
 	ExactArgs(2),
 	Flags(func(flags *pflag.FlagSet) {
 		flags.String("rpc-endpoint", "grpc.trongrid.io:50051", "Tron RPC endpoint; may carry its own key via ?apiKey=..., skip TLS validation via ?insecure=true, use http:// for plaintext, and supports ${ENV} interpolation")
-		flags.String("tron-api-key", "", "Tron API key for RPC access")
+		flags.String("tron-api-key", "", "DEPRECATED: default Tron API key applied when the endpoint carries no ?apiKey=...; use ?apiKey=... in --rpc-endpoint instead (supports ${ENV}). Will be removed in a future release")
 		flags.String("state-dir", "/data/poller", "Directory to store state information")
 		flags.Duration("interval-between-fetch", 100*time.Millisecond, "Interval between block fetches (default: 100ms to stay under 15qps limit)")
 		flags.Duration("latest-block-retry-interval", time.Second, "Interval between retries for latest block")
@@ -52,6 +52,7 @@ func testBlockE(cmd *cobra.Command, args []string) error {
 
 	rpcEndpoint, _ := cmd.Flags().GetString("rpc-endpoint")
 	apiKey, _ := cmd.Flags().GetString("tron-api-key")
+	warnDeprecatedAPIKeyFlag(logger, apiKey)
 	intervalBetweenFetch, _ := cmd.Flags().GetDuration("interval-between-fetch")
 	latestBlockRetryInterval, _ := cmd.Flags().GetDuration("latest-block-retry-interval")
 	batchSize, _ := cmd.Flags().GetInt("block-fetch-batch-size")

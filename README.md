@@ -52,11 +52,11 @@ This successfully produced:
 ## References
 
 ```
-firetron fetch 75748000 --state-dir /persistent/path --block-fetch-batch-size=1 --interval-between-fetch=0s --tron-endpoints=http://my.tron.endpoint --tron-api-key=xxxxxxxxx
+firetron fetch 75748000 --state-dir /persistent/path --block-fetch-batch-size=1 --interval-between-fetch=0s --tron-endpoints='http://my.tron.endpoint?apiKey=xxxxxxxxx'
 ```
 
 ```
-firetron fetch-evm 0 --tron-evm-endpoints=https://provider/jsonrpc --block-fetch-batch-size=1 --interval-between-fetch=1s --tron-endpoints=http://tron.grpc.endpoint:12345 --state-dir=/persistent/path --tron-api-key=xxxxxxx
+firetron fetch-evm 0 --tron-evm-endpoints='https://provider/jsonrpc?apiKey=xxxxxxx' --block-fetch-batch-size=1 --interval-between-fetch=1s --tron-endpoints='http://tron.grpc.endpoint:12345?apiKey=xxxxxxx' --state-dir=/persistent/path
 ```
 
 ### Per-endpoint API keys
@@ -72,7 +72,7 @@ firetron fetch 0 \
 ```
 
 Endpoint URL conventions:
-- `--tron-api-key` still works as the default key for any endpoint that does not carry its own.
+- `--tron-api-key` is **deprecated** (it logs a warning when used). It still works as the default key for any endpoint that does not carry its own, but prefer `?apiKey=...` on each endpoint; the flag will be removed in a future release.
 - `http://` on an endpoint selects plaintext (no scheme defaults to `https://`).
 - `?insecure=true` on an endpoint skips TLS certificate validation.
 - `${ENV}` interpolation is supported in endpoint values, e.g. `${QUICKNODE_RPC_URL}?apiKey=${QUICKNODE_API_KEY}`.
