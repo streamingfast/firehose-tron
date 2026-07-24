@@ -54,6 +54,46 @@ func TestParseEndpoint(t *testing.T) {
 			expectHTTP: true,
 		},
 		{
+			name:       "uppercase HTTP scheme is not double-prefixed and is plaintext",
+			rawURL:     "HTTP://grpc.provider.io",
+			expectDial: "grpc.provider.io:80",
+			expectHTTP: true,
+		},
+		{
+			name:       "uppercase HTTPS scheme is not double-prefixed",
+			rawURL:     "HTTPS://grpc.provider.io?apiKey=K",
+			expectKey:  "K",
+			expectDial: "grpc.provider.io:443",
+		},
+		{
+			name:       "apiKey param matched case-insensitively",
+			rawURL:     "https://host.io?APIKEY=K",
+			expectKey:  "K",
+			expectDial: "host.io:443",
+		},
+		{
+			name:           "insecure param matched case-insensitively",
+			rawURL:         "https://host.io?Insecure=true",
+			expectDial:     "host.io:443",
+			expectInsecure: true,
+		},
+		{
+			name:      "empty url errors",
+			rawURL:    "",
+			expectErr: "empty",
+		},
+		{
+			name:      "whitespace-only url errors",
+			rawURL:    "   ",
+			expectErr: "empty",
+		},
+		{
+			name:      "env var expanding to empty url errors",
+			rawURL:    "${EMPTY_URL}",
+			env:       map[string]string{"EMPTY_URL": ""},
+			expectErr: "empty",
+		},
+		{
 			name:       "explicit port preserved",
 			rawURL:     "https://grpc.provider.io:8443?apiKey=K",
 			expectKey:  "K",
@@ -191,6 +231,11 @@ func TestRedactRawURL(t *testing.T) {
 			name:   "env var literal redacted",
 			raw:    "https://host.io?apiKey=${RPC_KEY}",
 			expect: "https://host.io?apiKey=<redacted>",
+		},
+		{
+			name:   "uppercase key name redacted",
+			raw:    "https://host.io?APIKEY=SECRET&other=x",
+			expect: "https://host.io?APIKEY=<redacted>&other=x",
 		},
 	}
 

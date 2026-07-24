@@ -20,19 +20,24 @@ type Endpoint struct {
 }
 
 // ParseEndpoint expands ${VAR}/$VAR environment references in rawURL, extracts
-// and removes the apiKey and insecure query parameters, and defaults the scheme
-// to https:// when none is present (use an http:// endpoint for plaintext).
-// defaultAPIKey is used when the URL carries no apiKey of its own; an empty
-// apiKey value is treated as absent.
+// and removes the apiKey and insecure query parameters (matched
+// case-insensitively), and defaults the scheme to https:// when none is present
+// (use an http:// endpoint for plaintext). defaultAPIKey is used when the URL
+// carries no apiKey of its own; an empty apiKey value is treated as absent.
 //
-// Unresolved environment variables and a non-boolean insecure value are errors.
+// An empty rawURL, unresolved environment variables, and a non-boolean insecure
+// value are errors.
 func ParseEndpoint(rawURL, defaultAPIKey string) (Endpoint, error) {
 	expanded, err := expandEnv(rawURL)
 	if err != nil {
 		return Endpoint{}, err
 	}
 
-	if !strings.HasPrefix(expanded, "http://") && !strings.HasPrefix(expanded, "https://") {
+	if strings.TrimSpace(expanded) == "" {
+		return Endpoint{}, fmt.Errorf("endpoint URL is empty")
+	}
+
+	if !schemePrefixRegexp.MatchString(expanded) {
 		expanded = "https://" + expanded
 	}
 
@@ -46,26 +51,42 @@ func ParseEndpoint(rawURL, defaultAPIKey string) (Endpoint, error) {
 
 	query := parsed.Query()
 
+	// Query parameter names are case-sensitive per the URL spec and url.Values
+	// does not fold case, so match apiKey/insecure case-insensitively ourselves
+	// to accept apikey, APIKEY, Insecure, etc.
 	apiKey := defaultAPIKey
-	if query.Has("apiKey") {
-		if v := query.Get("apiKey"); v != "" {
-			apiKey = v
-		}
-		query.Del("apiKey")
+	if v, ok := popQueryParam(query, "apiKey"); ok && v != "" {
+		apiKey = v
 	}
 
 	insecure := false
-	if query.Has("insecure") {
-		insecure, err = strconv.ParseBool(query.Get("insecure"))
+	if v, ok := popQueryParam(query, "insecure"); ok {
+		insecure, err = strconv.ParseBool(v)
 		if err != nil {
-			return Endpoint{}, fmt.Errorf("invalid insecure value %q: want a boolean: %w", query.Get("insecure"), err)
+			return Endpoint{}, fmt.Errorf("invalid insecure value %q: want a boolean: %w", v, err)
 		}
-		query.Del("insecure")
 	}
 
 	parsed.RawQuery = query.Encode()
 
 	return Endpoint{URL: parsed, APIKey: apiKey, Insecure: insecure}, nil
+}
+
+// schemePrefixRegexp matches an http:// or https:// scheme prefix
+// case-insensitively, so an endpoint like HTTP://host is not double-prefixed.
+var schemePrefixRegexp = regexp.MustCompile(`(?i)^https?://`)
+
+// popQueryParam removes the first query parameter whose name case-insensitively
+// matches name and returns its value and whether it was present.
+func popQueryParam(query url.Values, name string) (string, bool) {
+	for k := range query {
+		if strings.EqualFold(k, name) {
+			v := query.Get(k)
+			query.Del(k)
+			return v, true
+		}
+	}
+	return "", false
 }
 
 // expandEnv replaces $VAR and ${VAR} references, returning an error that names
@@ -111,7 +132,8 @@ func RedactRawURL(raw string) string {
 	return apiKeyRedactRegexp.ReplaceAllString(raw, "${1}<redacted>")
 }
 
-var apiKeyRedactRegexp = regexp.MustCompile(`([?&]apiKey=)[^&]*`)
+// Case-insensitive so a key passed as ?APIKEY= or ?ApiKey= is redacted too.
+var apiKeyRedactRegexp = regexp.MustCompile(`(?i)([?&]apiKey=)[^&]*`)
 
 // String renders the endpoint for logging with the API key redacted.
 func (e Endpoint) String() string {
