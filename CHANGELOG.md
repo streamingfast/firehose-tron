@@ -4,7 +4,15 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## v0.2.0
+## v0.2.1
+
+> [!NOTE]
+> Re-release of v0.2.0. The v0.2.0 tag published no Docker image: the image
+> build stage still used Go 1.24 while the project requires Go 1.25. Only the
+> CI/Docker Go version changed, the content is otherwise identical to v0.2.0,
+> repeated below.
+
+### v0.2.0
 
 ### Added
 

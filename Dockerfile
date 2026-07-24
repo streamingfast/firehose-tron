@@ -1,6 +1,6 @@
 ARG FIRECORE_VERSION=v1.9.8
 
-FROM golang:1.24.2-bookworm AS build
+FROM golang:1.25.4-bookworm AS build
 
 ARG VERSION="dev"
 
