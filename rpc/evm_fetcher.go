@@ -26,9 +26,7 @@ import (
 var _ blockpoller.BlockFetcher[*ethRPC.Client] = (*EVMFetcher)(nil)
 
 type EVMFetcher struct {
-	fetchInterval            time.Duration
-	latestBlockRetryInterval time.Duration
-	logger                   *zap.Logger
+	logger *zap.Logger
 
 	tronClients *firecoreRPC.Clients[pbtronapi.WalletClient]
 	tronFetcher *Fetcher
@@ -47,12 +45,10 @@ func NewEVMFetcher(
 	evmFetcher.SkipReceipts(true) // we set 0 parallel transaction fetchers and skip receipts, so that it uses getLogs() instead
 
 	return &EVMFetcher{
-		fetchInterval:            fetchInterval,
-		latestBlockRetryInterval: latestBlockRetryInterval,
-		logger:                   logger,
-		tronClients:              tronClients,
-		tronFetcher:              tronFetcher,
-		evmFetcher:               evmFetcher,
+		logger:      logger,
+		tronClients: tronClients,
+		tronFetcher: tronFetcher,
+		evmFetcher:  evmFetcher,
 	}
 }
 
@@ -61,22 +57,12 @@ func (f *EVMFetcher) IsBlockAvailable(blockNum uint64) bool {
 }
 
 func (f *EVMFetcher) Fetch(ctx context.Context, client *ethRPC.Client, requestBlockNum uint64) (b *pbbstream.Block, skipped bool, err error) {
-	f.logger.Debug("test logger")
-
 	block, err := f.evmFetcher.FetchPBEth(ctx, client, requestBlockNum)
 	if err != nil {
 		return nil, false, err
 	}
 
-	tronBlock, err := rpc.WithClientsContext(f.tronClients, ctx,
-		func(ctx context.Context, client pbtronapi.WalletClient) (*pbtron.Block, error) {
-			out, err := f.tronFetcher.fetch(ctx, client, requestBlockNum)
-			if err != nil {
-				return nil, err
-			}
-			return out, nil
-		},
-	)
+	tronBlock, err := f.fetchTronBlock(ctx, requestBlockNum)
 	if err != nil {
 		return nil, false, err
 	}
@@ -122,6 +108,28 @@ func (f *EVMFetcher) Fetch(ctx context.Context, client *ethRPC.Client, requestBl
 		ParentNum: block.GetFirehoseBlockParentNumber(),
 		Payload:   anyBlock,
 	}, false, nil
+}
+
+// fetchTronBlock fetches the Tron-native block for requestBlockNum through the
+// Tron client pool, with its own fallback rotation.
+//
+// The EVM getBlock/getLogs calls in Fetch already consumed part of this
+// request's max-block-fetch-duration budget. Detaching the parent deadline with
+// context.WithoutCancel gives the Tron client pool its own full per-attempt
+// budget, so a slow EVM round does not make healthy Tron providers look like
+// failures. Cancellation on shutdown still propagates through the poller's
+// termination path rather than through this context.
+func (f *EVMFetcher) fetchTronBlock(ctx context.Context, requestBlockNum uint64) (*pbtron.Block, error) {
+	tronCtx := context.WithoutCancel(ctx)
+	return rpc.WithClientsContext(f.tronClients, tronCtx,
+		func(ctx context.Context, client pbtronapi.WalletClient) (*pbtron.Block, error) {
+			out, err := f.tronFetcher.fetch(ctx, client, requestBlockNum)
+			if err != nil {
+				return nil, err
+			}
+			return out, nil
+		},
+	)
 }
 
 func ethBlockLIBNum(b *pbeth.Block) uint64 {

@@ -6,8 +6,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
-	"net/url"
-	"strings"
 	"time"
 
 	pbbstream "github.com/streamingfast/bstream/pb/sf/bstream/v1"
@@ -46,49 +44,22 @@ func (c *apiKeyCredentials) RequireTransportSecurity() bool {
 	return false
 }
 
-func NewTronClient(endpointURL string, apiKey string, plaintext, insecure bool) (pbtronapi.WalletClient, error) {
-	if !strings.Contains(endpointURL, "http://") && !strings.Contains(endpointURL, "https://") {
-		if plaintext {
-			endpointURL = "http://" + endpointURL
-		} else {
-			endpointURL = "https://" + endpointURL
-		}
-	}
-
-	parsedURL, err := url.Parse(endpointURL)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse endpoint URL %q: %w", endpointURL, err)
-	}
-
+func NewTronClient(endpoint Endpoint) (pbtronapi.WalletClient, error) {
 	var grpcOptions []grpc.DialOption
-	var hostWithPort string
 
-	switch parsedURL.Scheme {
-	case "http":
+	if endpoint.Plaintext() {
 		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, true, false))
-		port := parsedURL.Port()
-		if port == "" {
-			port = "80"
-		}
-		hostWithPort = parsedURL.Hostname() + ":" + port
-	case "https":
-		if insecure {
-			grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(true, false, false))
-		} else {
-			grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, false, false))
-		}
-		port := parsedURL.Port()
-		if port == "" {
-			port = "443"
-		}
-		hostWithPort = parsedURL.Hostname() + ":" + port
+	} else if endpoint.Insecure {
+		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(true, false, false))
+	} else {
+		grpcOptions = append(grpcOptions, dgrpc.WithMustAutoTransportCredentials(false, false, false))
 	}
 
-	if apiKey != "" {
-		grpcOptions = append(grpcOptions, grpc.WithPerRPCCredentials(&apiKeyCredentials{apiKey: apiKey}))
+	if endpoint.APIKey != "" {
+		grpcOptions = append(grpcOptions, grpc.WithPerRPCCredentials(&apiKeyCredentials{apiKey: endpoint.APIKey}))
 	}
 
-	conn, err := dgrpc.NewExternalClientConn(hostWithPort, grpcOptions...)
+	conn, err := dgrpc.NewExternalClientConn(endpoint.DialTarget(), grpcOptions...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create client connection: %w", err)
 	}
@@ -125,21 +96,8 @@ func (f *Fetcher) Fetch(ctx context.Context, client pbtronapi.WalletClient, requ
 func (f *Fetcher) fetch(ctx context.Context, client pbtronapi.WalletClient, requestBlockNum uint64) (b *pbtron.Block, err error) {
 	f.logger.Info("fetching block", zap.Uint64("block_num", requestBlockNum))
 
-	sleepDuration := time.Duration(0)
-	for f.latestBlockNum < int64(requestBlockNum) {
-		time.Sleep(sleepDuration)
-
-		f.latestBlockNum, err = f.fetchLatestBlockNum(ctx, client)
-		if err != nil {
-			return nil, fmt.Errorf("fetching latest block num: %w", err)
-		}
-
-		f.logger.Info("got latest block num", zap.Int64("latest_block_num", f.latestBlockNum), zap.Uint64("requested_block_num", requestBlockNum))
-
-		if f.latestBlockNum >= int64(requestBlockNum) {
-			break
-		}
-		sleepDuration = f.latestBlockRetryInterval
+	if _, err := f.fetchLatestBlockNumUntil(ctx, client, int64(requestBlockNum)); err != nil {
+		return nil, err
 	}
 
 	// Fetch block data
@@ -165,6 +123,29 @@ func (f *Fetcher) fetch(ctx context.Context, client pbtronapi.WalletClient, requ
 	// Convert block extension and transaction info list to our block type
 	return convertBlockAndTransactionsToBlock(blockExt, transactionInfoList)
 
+}
+
+// fetchLatestBlockNumUntil blocks until the chain head reaches at least
+// target, polling on latestBlockRetryInterval. It returns the observed head.
+func (f *Fetcher) fetchLatestBlockNumUntil(ctx context.Context, client pbtronapi.WalletClient, target int64) (int64, error) {
+	sleepDuration := time.Duration(0)
+	for f.latestBlockNum < target {
+		time.Sleep(sleepDuration)
+
+		var err error
+		f.latestBlockNum, err = f.fetchLatestBlockNum(ctx, client)
+		if err != nil {
+			return 0, fmt.Errorf("waiting for latest block num: %w", err)
+		}
+
+		f.logger.Info("got latest block num", zap.Int64("latest_block_num", f.latestBlockNum), zap.Int64("requested_block_num", target))
+
+		if f.latestBlockNum >= target {
+			break
+		}
+		sleepDuration = f.latestBlockRetryInterval
+	}
+	return f.latestBlockNum, nil
 }
 
 func getBlock(ctx context.Context, client pbtronapi.WalletClient, blockNum int64) (*pbtronapi.BlockExtention, error) {
