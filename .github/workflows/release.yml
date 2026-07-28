@@ -14,6 +14,10 @@ on:
       - "**"
   workflow_dispatch:
 
+# Jobs that need more than reading the repository ask for it themselves.
+permissions:
+  contents: read
+
 # A tag run is never cancelled, it is the one that publishes the release.
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -86,13 +90,18 @@ jobs:
       - name: Extract changelog section
         id: changelog
         if: steps.version.outputs.IS_RELEASE == 'true'
+        # Passed through the environment rather than interpolated into the script,
+        # so the token never becomes part of the command line.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
         run: |
           curl -sL "https://github.com/streamingfast/sfreleaser/releases/download/${SFRELEASER_VERSION}/sfreleaser_linux_x86_64.tar.gz" | tar -xz
           chmod +x sfreleaser
 
           ./sfreleaser changelog extract-section \
-            "github://token:${{ github.token }}@${{ github.repository }}/${GITHUB_SHA}/CHANGELOG.md" \
-            "${{ steps.version.outputs.VERSION }}" \
+            "github://token:${GH_TOKEN}@${GITHUB_REPOSITORY}/${GITHUB_SHA}/CHANGELOG.md" \
+            "${VERSION}" \
             --github-output="CHANGELOG:$GITHUB_OUTPUT"
 
   binaries:
@@ -157,7 +166,10 @@ jobs:
   docker:
     name: Docker image
     runs-on: ubuntu-24.04
-    needs: [setup]
+    # Serial with the binaries on purpose: pushing an image, and moving `latest`
+    # with it, for a tag whose binaries failed to build would leave a release
+    # half published.
+    needs: [setup, binaries]
 
     permissions:
       contents: read
@@ -184,10 +196,12 @@ jobs:
 
       - name: Log in to the Container registry
         uses: docker/login-action@v3
+        env:
+          REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ env.REGISTRY_PASSWORD }}
 
       - name: Generate docker tags/labels from github build context
         id: meta
