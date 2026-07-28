@@ -1,4 +1,0 @@
-global:
-  binary: firetron
-  language: golang
-  variant: application

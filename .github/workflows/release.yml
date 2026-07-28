@@ -1,0 +1,278 @@
+---
+name: Build, push and release (if tag)
+
+# A release is just a tag push: the same workflow that builds and pushes an image
+# for every branch also cuts the GitHub release when the ref is a tag. Nothing is
+# ever released from a developer machine.
+on:
+  push:
+    tags:
+      - "v*"
+    # `**` and not `*`, the latter does not match branch names containing a
+    # slash, which is most of them.
+    branches:
+      - "**"
+  workflow_dispatch:
+
+# Jobs that need more than reading the repository ask for it themselves.
+permissions:
+  contents: read
+
+# A tag run is never cancelled, it is the one that publishes the release.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  # Only used to extract the CHANGELOG.md section that becomes the release notes,
+  # the release itself is driven by this workflow.
+  SFRELEASER_VERSION: v0.13.1
+
+jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-24.04
+
+    outputs:
+      version: ${{ steps.version.outputs.VERSION }}
+      is-release: ${{ steps.version.outputs.IS_RELEASE }}
+      binary-matrix: ${{ steps.matrix.outputs.MATRIX }}
+      docker-platforms: ${{ steps.matrix.outputs.DOCKER_PLATFORMS }}
+      changelog: ${{ steps.changelog.outputs.CHANGELOG }}
+
+    steps:
+      - name: Extract version
+        id: version
+        run: |
+          version="edge-${GITHUB_SHA::7}"
+          is_release="false"
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            version="${GITHUB_REF#refs/tags/}"
+            is_release="true"
+          fi
+
+          echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
+          echo "IS_RELEASE=${is_release}" >> "$GITHUB_OUTPUT"
+
+      # Cross compiling every platform on each branch push is mostly wasted time,
+      # so only a release builds the full set. Everything else builds linux/amd64,
+      # enough to catch a broken build. A manual run also builds everything, which
+      # is how the full matrix gets validated before a tag is pushed.
+      - name: Compute build matrix
+        id: matrix
+        env:
+          FULL_BUILD: ${{ steps.version.outputs.IS_RELEASE == 'true' || github.event_name == 'workflow_dispatch' }}
+        run: |
+          matrix=$(cat <<'JSON'
+          {"include": [
+            {"goos": "linux",  "goarch": "amd64", "runner": "ubuntu-24.04",     "smoke": true},
+            {"goos": "linux",  "goarch": "arm64", "runner": "ubuntu-24.04-arm", "smoke": true},
+            {"goos": "darwin", "goarch": "amd64", "runner": "ubuntu-24.04",     "smoke": false},
+            {"goos": "darwin", "goarch": "arm64", "runner": "ubuntu-24.04",     "smoke": false}
+          ]}
+          JSON
+          )
+          docker_platforms="linux/amd64,linux/arm64"
+
+          if [[ "${FULL_BUILD}" != "true" ]]; then
+            matrix=$(jq '{include: [.include[] | select(.goos == "linux" and .goarch == "amd64")]}' <<< "${matrix}")
+            docker_platforms="linux/amd64"
+          fi
+
+          echo "MATRIX=$(jq --compact-output . <<< "${matrix}")" >> "$GITHUB_OUTPUT"
+          echo "DOCKER_PLATFORMS=${docker_platforms}" >> "$GITHUB_OUTPUT"
+
+      # Extracted here rather than in the release job so a tag whose CHANGELOG.md
+      # section is missing fails the run before any image is pushed, which is
+      # what sfreleaser does when it finds no section for the version.
+      - name: Extract changelog section
+        id: changelog
+        if: steps.version.outputs.IS_RELEASE == 'true'
+        # Passed through the environment rather than interpolated into the script,
+        # so the token never becomes part of the command line.
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.VERSION }}
+        run: |
+          curl -sL "https://github.com/streamingfast/sfreleaser/releases/download/${SFRELEASER_VERSION}/sfreleaser_linux_x86_64.tar.gz" | tar -xz
+          chmod +x sfreleaser
+
+          ./sfreleaser changelog extract-section \
+            "github://token:${GH_TOKEN}@${GITHUB_REPOSITORY}/${GITHUB_SHA}/CHANGELOG.md" \
+            "${VERSION}" \
+            --github-output="CHANGELOG:$GITHUB_OUTPUT"
+
+  binaries:
+    name: Binary ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ${{ matrix.runner }}
+    needs: [setup]
+
+    permissions:
+      contents: read
+
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.binary-matrix) }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # The build stage runs natively and cross compiles, so GOOS/GOARCH are
+      # passed explicitly and no emulation is ever involved. This is also the only
+      # way to produce the darwin binaries, which have no Docker platform.
+      - name: Build binary
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          target: binary
+          outputs: type=local,dest=dist
+          build-args: |
+            GOOS=${{ matrix.goos }}
+            GOARCH=${{ matrix.goarch }}
+            VERSION=${{ needs.setup.outputs.version }}
+          cache-from: type=gha,scope=binary-${{ matrix.goos }}-${{ matrix.goarch }}
+          cache-to: type=gha,mode=max,scope=binary-${{ matrix.goos }}-${{ matrix.goarch }}
+
+      - name: Inspect binary
+        run: |
+          chmod +x dist/firetron
+          file dist/firetron
+
+      # Each linux job runs on a runner of its own architecture, so the binary it
+      # just produced can actually be executed here.
+      - name: Smoke test binary
+        if: matrix.smoke
+        run: dist/firetron --version
+
+      # Released as bare binaries, the platform is in the name.
+      - name: Name binary
+        run: mv dist/firetron "dist/firetron_${{ matrix.goos }}_${{ matrix.goarch }}"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firetron_${{ matrix.goos }}_${{ matrix.goarch }}
+          path: dist/firetron_*
+          if-no-files-found: error
+          retention-days: 7
+
+  docker:
+    name: Docker image
+    runs-on: ubuntu-24.04
+    # Serial with the binaries on purpose: pushing an image, and moving `latest`
+    # with it, for a tag whose binaries failed to build would leave a release
+    # half published.
+    needs: [setup, binaries]
+
+    permissions:
+      contents: read
+      packages: write
+
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract Firehose Core version
+        id: extract-firecore-version
+        run: |
+          docker pull ghcr.io/streamingfast/firehose-core:latest
+          echo VERSION=$(docker inspect --format='{{index .Config.Labels "org.opencontainers.image.version"}}' 'ghcr.io/streamingfast/firehose-core:latest') >> "$GITHUB_OUTPUT"
+
+      # No QEMU is set up on purpose: the build stage cross compiles natively and
+      # the runtime stage only copies a file into the firehose-core base, so
+      # nothing foreign is ever executed.
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to the Container registry
+        uses: docker/login-action@v3
+        env:
+          REGISTRY_PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ env.REGISTRY_PASSWORD }}
+
+      - name: Generate docker tags/labels from github build context
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=tag
+            type=sha,prefix=,enable=true
+            type=raw,enable=${{ github.ref == 'refs/heads/main' }},value=main
+            type=raw,enable=${{ github.ref == 'refs/heads/develop' }},value=develop
+          flavor: |
+            latest=${{ startsWith(github.ref, 'refs/tags/') && !contains(github.ref, 'beta') && !contains(github.ref, 'rc') }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ needs.setup.outputs.docker-platforms }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
+          cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
+          build-args: |
+            FIRECORE_VERSION=${{ steps.extract-firecore-version.outputs.VERSION }}
+            VERSION=${{ needs.setup.outputs.version }}
+
+  release:
+    name: Release
+    runs-on: ubuntu-24.04
+    needs: [setup, binaries, docker]
+    if: needs.setup.outputs.is-release == 'true'
+
+    permissions:
+      contents: write
+
+    steps:
+      # docker/build-push-action uploads a build record artifact of its own
+      # (<owner>.<repo>.<id>.dockerbuild), so the pattern is required to keep it
+      # out of the release assets.
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          pattern: firetron_*
+          merge-multiple: true
+
+      - name: Create checksums
+        working-directory: artifacts
+        run: |
+          sha256sum firetron_* > checksums.txt
+          cat checksums.txt
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          body: ${{ needs.setup.outputs.changelog }}
+          prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'rc') }}
+
+  slack-notifications:
+    name: Slack notification
+    runs-on: ubuntu-24.04
+    needs: [docker]
+
+    steps:
+      - name: Slack notification
+        env:
+          SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+        uses: Ilshidur/action-slack@2.1.0
+        with:
+          args: |
+            :done: *${{ github.repository }}* Success building docker images from ${{ github.ref_type }} _${{ github.ref_name }}_ (${{ github.actor }}) :sparkling_heart: ```${{ needs.docker.outputs.tags }}```
