@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Added
+
+- Docker images are now published for both `linux/amd64` and `linux/arm64`.
+
+### Changed
+
+- Releases are now cut entirely by CI when a `v*` tag is pushed: the binaries,
+  the Docker images and the GitHub release (whose body is the matching
+  `CHANGELOG.md` section) all come from the `Build, push and release (if tag)`
+  workflow. Releasing no longer requires running `sfreleaser` from a developer
+  machine.
+- Release assets are now bare binaries named `firetron_<os>_<arch>`, replacing
+  the `firehose-tron_<os>_<arch>.tar.gz` archives. They are built by cross
+  compiling inside Docker.
+- The `Dockerfile` default `FIRECORE_VERSION` is now `v1.16.0` (was `v1.9.8`,
+  which is only published for `linux/amd64`).
+- Docker images and release binaries are built with Go 1.26 (was 1.25), which is
+  also the version the test workflow runs. The module still declares `go 1.25`.
+
+### Removed
+
+- The `.sfreleaser` configuration and the separate `docker.yml` workflow, both
+  superseded by the tag driven release workflow.
+
 ## v0.2.1
 
 > [!NOTE]

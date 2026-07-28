@@ -49,6 +49,29 @@ This successfully produced:
 - merged-block bundles
 - a working Firehose gRPC endpoint
 
+## Releasing
+
+Releases are cut by CI, there is nothing to run locally:
+
+1. Land a PR that moves the `## Unreleased` section of [CHANGELOG.md](CHANGELOG.md) to the version being released, e.g. `## v0.3.0`.
+2. Tag the merge commit and push the tag:
+
+   ```shell
+   git tag v0.3.0 && git push origin v0.3.0
+   ```
+
+The `Build, push and release (if tag)` workflow then cross compiles the
+`linux/amd64`, `linux/arm64`, `darwin/amd64` and `darwin/arm64` binaries inside
+Docker, pushes the multi-platform image to `ghcr.io/streamingfast/firehose-tron`
+and creates the GitHub release, using the `CHANGELOG.md` section matching the tag
+as the release notes. A tag with no matching section fails the workflow before
+anything is published.
+
+Tags containing `beta` or `rc` are published as pre-releases and do not move the
+`latest` Docker tag. Every other branch push builds and pushes a `linux/amd64`
+image only; a manual `workflow_dispatch` run builds the full binary matrix,
+which is the way to validate a release build before tagging.
+
 ## References
 
 ```
