@@ -1,7 +1,7 @@
 version: v1
 name: buf.build/streamingfast/firehose-tron
 deps:
-  - buf.build/streamingfast/tron-protocol
+  - buf.build/streamingfast/tron-protocol:6c2f921089c047b2982e8a0cedc8317c
 breaking:
   use:
     - FILE
