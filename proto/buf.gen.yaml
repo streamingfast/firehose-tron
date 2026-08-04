@@ -1,5 +1,8 @@
 version: v1
 plugins:
-  - name: go
+  # Pinned rather than `name: go`, which resolves to whatever protoc-gen-go is on
+  # PATH: the generated files carry the plugin version in their header, so an
+  # unpinned plugin makes the CI drift check fail on version churn alone.
+  - plugin: buf.build/protocolbuffers/go:v1.36.6
     out: ../pb
     opt: paths=source_relative
