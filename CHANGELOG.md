@@ -12,6 +12,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ### Changed
 
+- The TRON protocol definitions (`github.com/streamingfast/tron-protocol` and the
+  `buf.build/streamingfast/tron-protocol` Buf module) are updated to the ones
+  shipped with node release **GreatVoyage-v4.8.2.1**, which `firetron` now
+  supports. The upstream changes are the removal of the `google.api.http`
+  grpc-gateway annotations from `api/api.proto` (TRON's "improve HTTP API
+  performance" work) and the `BELOW_THAN_ME` `ReasonCode` literal spelling fix
+  (`0X24` to `0x24`, same value). No message, field or enum value changed, so
+  the blocks `firetron` produces are byte for byte unaffected and no re-sync is
+  needed.
+- The `googleapis` Buf dependency is gone from `proto/buf.lock`: it was only
+  pulled in transitively by the grpc-gateway annotations that TRON removed.
 - Releases are now cut entirely by CI when a `v*` tag is pushed: the binaries,
   the Docker images and the GitHub release (whose body is the matching
   `CHANGELOG.md` section) all come from the `Build, push and release (if tag)`
