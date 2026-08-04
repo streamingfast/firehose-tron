@@ -4,5 +4,5 @@ deps:
   - remote: buf.build
     owner: streamingfast
     repository: tron-protocol
-    commit: 6c2f921089c047b2982e8a0cedc8317c
+    commit: c69981d41a7d47fab0c95b4d06da1550
     digest: shake256:9387cf9fb16ef85edbd4240c3448cd4ff4f24859411f2b0fd04eba7731b14988224a32c023c0669bf245c0fcfad6dc0d4085b0eccbc30ad1762593e6385dde2a
