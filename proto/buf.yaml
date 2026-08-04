@@ -1,7 +1,12 @@
 version: v1
 name: buf.build/streamingfast/firehose-tron
 deps:
-  - buf.build/streamingfast/tron-protocol
+  # Tracks the label matching the TRON node release we support, rather than the
+  # module's default `main` label. The fork publishes `main` only from a
+  # `refs/tags/v*` push, so between a proto sync landing on `master` and the
+  # matching tag being pushed, `main` silently points at older protos. Bump this
+  # to the next `vX.Y.Z` label when moving to a newer GreatVoyage release.
+  - buf.build/streamingfast/tron-protocol:v4.8.2.1
 breaking:
   use:
     - FILE
