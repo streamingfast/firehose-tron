@@ -31,6 +31,11 @@ type EVMFetcher struct {
 	tronClients *firecoreRPC.Clients[pbtronapi.WalletClient]
 	tronFetcher *Fetcher
 	evmFetcher  *blockfetcher.BlockFetcher
+
+	// One throttle per side so a failing EVM provider never masks a Tron
+	// failure, and vice versa.
+	evmFailures  *failureLogger
+	tronFailures *failureLogger
 }
 
 func NewEVMFetcher(
@@ -45,10 +50,12 @@ func NewEVMFetcher(
 	evmFetcher.SkipReceipts(true) // we set 0 parallel transaction fetchers and skip receipts, so that it uses getLogs() instead
 
 	return &EVMFetcher{
-		logger:      logger,
-		tronClients: tronClients,
-		tronFetcher: tronFetcher,
-		evmFetcher:  evmFetcher,
+		logger:       logger,
+		tronClients:  tronClients,
+		tronFetcher:  tronFetcher,
+		evmFetcher:   evmFetcher,
+		evmFailures:  newFailureLogger(logger, failureLogInterval),
+		tronFailures: newFailureLogger(logger, failureLogInterval),
 	}
 }
 
@@ -56,16 +63,28 @@ func (f *EVMFetcher) IsBlockAvailable(blockNum uint64) bool {
 	return f.evmFetcher.IsBlockAvailable(blockNum)
 }
 
+// Fetch retrieves requestBlockNum from both the EVM (JSON-RPC) and the Tron
+// (gRPC) side and merges them into a single Firehose block.
+//
+// Failures are logged here on top of being returned: the block poller retries
+// a failed fetch forever without logging anything, so a permanently failing
+// endpoint (wrong API key, exhausted rate limit) would otherwise show up as a
+// poller silently frozen on one block. A failure that keeps repeating is
+// collapsed to one line every failureLogInterval.
 func (f *EVMFetcher) Fetch(ctx context.Context, client *ethRPC.Client, requestBlockNum uint64) (b *pbbstream.Block, skipped bool, err error) {
 	block, err := f.evmFetcher.FetchPBEth(ctx, client, requestBlockNum)
 	if err != nil {
+		f.evmFailures.log("failed to fetch block from EVM endpoint, the poller will retry", err, zap.Uint64("block_num", requestBlockNum))
 		return nil, false, err
 	}
+	f.evmFailures.reset()
 
 	tronBlock, err := f.fetchTronBlock(ctx, requestBlockNum)
 	if err != nil {
+		f.tronFailures.log("failed to fetch block from Tron endpoint, the poller will retry", err, zap.Uint64("block_num", requestBlockNum))
 		return nil, false, err
 	}
+	f.tronFailures.reset()
 
 	if requestBlockNum != 0 {
 		tronTransactions := make(map[string]*pbtron.Transaction)

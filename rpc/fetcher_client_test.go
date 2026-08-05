@@ -8,7 +8,7 @@ import (
 )
 
 func TestNewTronClientAcceptsEndpoint(t *testing.T) {
-	ep, err := ParseEndpoint("https://grpc.provider.io?apiKey=K", "")
+	ep, err := ParseEndpoint("https://grpc.example.com?apiKey=K", "")
 	require.NoError(t, err)
 
 	client, err := NewTronClient(ep)
@@ -17,7 +17,7 @@ func TestNewTronClientAcceptsEndpoint(t *testing.T) {
 }
 
 func TestNewTronClientPlaintextEndpoint(t *testing.T) {
-	ep, err := ParseEndpoint("http://grpc.provider.io:50051", "")
+	ep, err := ParseEndpoint("http://grpc.example.com:50051", "")
 	require.NoError(t, err)
 
 	client, err := NewTronClient(ep)
@@ -26,7 +26,7 @@ func TestNewTronClientPlaintextEndpoint(t *testing.T) {
 }
 
 func TestNewTronClientInsecureEndpoint(t *testing.T) {
-	ep, err := ParseEndpoint("https://grpc.provider.io?insecure=true", "")
+	ep, err := ParseEndpoint("https://grpc.example.com?insecure=true", "")
 	require.NoError(t, err)
 
 	client, err := NewTronClient(ep)

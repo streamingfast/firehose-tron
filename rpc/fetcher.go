@@ -26,6 +26,7 @@ type Fetcher struct {
 	fetchInterval            time.Duration
 	latestBlockRetryInterval time.Duration
 	logger                   *zap.Logger
+	fetchFailures            *failureLogger
 	latestBlockNum           int64
 }
 
@@ -76,6 +77,7 @@ func NewFetcher(
 		fetchInterval:            fetchInterval,
 		latestBlockRetryInterval: latestBlockRetryInterval,
 		logger:                   logger,
+		fetchFailures:            newFailureLogger(logger, failureLogInterval),
 	}
 }
 
@@ -83,11 +85,20 @@ func (f *Fetcher) IsBlockAvailable(blockNum uint64) bool {
 	return uint64(f.latestBlockNum) >= blockNum
 }
 
+// Fetch retrieves requestBlockNum and converts it to a Firehose block.
+//
+// Failures are logged here on top of being returned: the block poller retries
+// a failed fetch forever without logging anything, so a permanently failing
+// endpoint (wrong API key, exhausted rate limit) would otherwise show up as a
+// poller silently frozen on one block. A failure that keeps repeating is
+// collapsed to one line every failureLogInterval.
 func (f *Fetcher) Fetch(ctx context.Context, client pbtronapi.WalletClient, requestBlockNum uint64) (b *pbbstream.Block, skipped bool, err error) {
 	block, err := f.fetch(ctx, client, requestBlockNum)
 	if err != nil {
+		f.fetchFailures.log("failed to fetch block, the poller will retry", err, zap.Uint64("block_num", requestBlockNum))
 		return nil, false, fmt.Errorf("fetching block: %w", err)
 	}
+	f.fetchFailures.reset()
 
 	// Convert to pbbstream.Block format
 	return convertBlock(block)

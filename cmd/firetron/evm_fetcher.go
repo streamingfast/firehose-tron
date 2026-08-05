@@ -40,6 +40,9 @@ func fetchEVME(cmd *cobra.Command, args []string) error {
 	evmRpcEndpoints := sflags.MustGetStringArray(cmd, "tron-evm-endpoints")
 
 	apiKey := sflags.MustGetString(cmd, "tron-api-key")
+	if err := validateAPIKeyFlag(apiKey); err != nil {
+		return err
+	}
 	warnDeprecatedAPIKeyFlag(logger, apiKey)
 	stateDir := sflags.MustGetString(cmd, "state-dir")
 	startBlock, err := strconv.ParseUint(args[0], 10, 64)
@@ -90,12 +93,14 @@ func fetchEVME(cmd *cobra.Command, args []string) error {
 	// Create Tron clients with all endpoints
 	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient]()
 	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
+	tronProbes := make([]endpointProbe, 0, len(tronEndpoints))
 	for _, ep := range tronEndpoints {
 		client, err := rpc.NewTronClient(ep)
 		if err != nil {
 			return fmt.Errorf("failed to create Tron client for endpoint %q: %w", ep.String(), err)
 		}
 		tronClients.Add(client)
+		tronProbes = append(tronProbes, endpointProbe{name: ep.String(), probe: tronHeadBlockProbe(client)})
 	}
 
 	// TRON native block fetcher
@@ -104,8 +109,21 @@ func fetchEVME(cmd *cobra.Command, args []string) error {
 	// Create EVM clients with all endpoints
 	evmRollingStrategy := firecoreRPC.NewStickyRollingStrategy[*ethRPC.Client]()
 	evmClients := firecoreRPC.NewClients(maxBlockFetchDuration, evmRollingStrategy, logger)
+	evmProbes := make([]endpointProbe, 0, len(evmParsed))
 	for _, ep := range evmParsed {
-		evmClients.Add(newEVMClient(ep))
+		client := newEVMClient(ep)
+		evmClients.Add(client)
+		evmProbes = append(evmProbes, endpointProbe{name: ep.String(), probe: evmHeadBlockProbe(client)})
+	}
+
+	// Both sides are probed before the poller starts: it retries a failed fetch
+	// forever without logging, so a misconfigured endpoint would otherwise look
+	// like a poller stuck on its first block.
+	if err := probeEndpoints(cmd.Context(), logger, "Tron", tronProbes); err != nil {
+		return err
+	}
+	if err := probeEndpoints(cmd.Context(), logger, "EVM", evmProbes); err != nil {
+		return err
 	}
 
 	// EVM block fetcher
