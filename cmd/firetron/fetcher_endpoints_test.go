@@ -9,7 +9,7 @@ import (
 
 func TestParseTronEndpoints(t *testing.T) {
 	eps, err := parseTronEndpoints(
-		[]string{"https://a.io?apiKey=KA&insecure=true", "https://b.io"},
+		[]string{"https://first.example.com?apiKey=KA&insecure=true", "https://second.example.com"},
 		"DEFAULT",
 	)
 	require.NoError(t, err)
@@ -27,7 +27,7 @@ func TestParseTronEndpointsRejectsEmpty(t *testing.T) {
 }
 
 func TestParseTronEndpointsPropagatesEnvError(t *testing.T) {
-	_, err := parseTronEndpoints([]string{"https://a.io?apiKey=${DEFINITELY_MISSING_VAR}"}, "")
+	_, err := parseTronEndpoints([]string{"https://first.example.com?apiKey=${DEFINITELY_MISSING_VAR}"}, "")
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "DEFINITELY_MISSING_VAR")
 }

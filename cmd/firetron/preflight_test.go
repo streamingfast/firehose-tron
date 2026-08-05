@@ -15,8 +15,8 @@ func TestProbeEndpointsAllFailing(t *testing.T) {
 	core, logs := observer.New(zap.WarnLevel)
 
 	err := probeEndpoints(context.Background(), zap.New(core), "EVM", []endpointProbe{
-		{name: "https://a.io", probe: func(context.Context) (uint64, error) { return 0, errors.New("401 unauthorized") }},
-		{name: "https://b.io", probe: func(context.Context) (uint64, error) { return 0, errors.New("403 rate limited") }},
+		{name: "https://first.example.com", probe: func(context.Context) (uint64, error) { return 0, errors.New("401 unauthorized") }},
+		{name: "https://second.example.com", probe: func(context.Context) (uint64, error) { return 0, errors.New("403 rate limited") }},
 	})
 
 	require.Error(t, err)
@@ -30,8 +30,8 @@ func TestProbeEndpointsOneWorkingIsEnough(t *testing.T) {
 	core, logs := observer.New(zap.WarnLevel)
 
 	err := probeEndpoints(context.Background(), zap.New(core), "Tron", []endpointProbe{
-		{name: "https://a.io", probe: func(context.Context) (uint64, error) { return 0, errors.New("401 unauthorized") }},
-		{name: "https://b.io", probe: func(context.Context) (uint64, error) { return 12345, nil }},
+		{name: "https://first.example.com", probe: func(context.Context) (uint64, error) { return 0, errors.New("401 unauthorized") }},
+		{name: "https://second.example.com", probe: func(context.Context) (uint64, error) { return 12345, nil }},
 	})
 
 	require.NoError(t, err)
@@ -40,13 +40,13 @@ func TestProbeEndpointsOneWorkingIsEnough(t *testing.T) {
 }
 
 // A bare host:port endpoint is dialed over TLS, so pointing one at a plaintext
-// gRPC port (TronGrid's grpc.trongrid.io:50051) fails every fetch forever. The
-// transport error does not say that, so the hint has to.
+// gRPC port fails every fetch forever. The transport error does not say that,
+// so the hint has to.
 func TestProbeEndpointsHintsAtPlaintextEndpoint(t *testing.T) {
 	core, logs := observer.New(zap.WarnLevel)
 
 	err := probeEndpoints(context.Background(), zap.New(core), "Tron", []endpointProbe{{
-		name: "https://grpc.trongrid.io:50051",
+		name: "https://grpc.example.com:50051",
 		probe: func(context.Context) (uint64, error) {
 			return 0, errors.New(`rpc error: code = Unavailable desc = connection error: desc = "transport: authentication handshake failed: tls: first record does not look like a TLS handshake"`)
 		},
