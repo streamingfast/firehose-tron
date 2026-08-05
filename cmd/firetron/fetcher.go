@@ -36,6 +36,9 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	rpcEndpoints := sflags.MustGetStringArray(cmd, "tron-endpoints")
 
 	apiKey := sflags.MustGetString(cmd, "tron-api-key")
+	if err := validateAPIKeyFlag(apiKey); err != nil {
+		return err
+	}
 	warnDeprecatedAPIKeyFlag(logger, apiKey)
 	stateDir := sflags.MustGetString(cmd, "state-dir")
 	startBlock, err := strconv.ParseUint(args[0], 10, 64)
@@ -68,12 +71,18 @@ func fetchE(cmd *cobra.Command, args []string) error {
 
 	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient]()
 	tronClients := firecoreRPC.NewClients(maxBlockFetchDuration, rollingStrategy, logger)
+	tronProbes := make([]endpointProbe, 0, len(endpoints))
 	for _, ep := range endpoints {
 		client, err := rpc.NewTronClient(ep)
 		if err != nil {
 			return fmt.Errorf("failed to create Tron client for endpoint %q: %w", ep.String(), err)
 		}
 		tronClients.Add(client)
+		tronProbes = append(tronProbes, endpointProbe{name: ep.String(), probe: tronHeadBlockProbe(client)})
+	}
+
+	if err := probeEndpoints(cmd.Context(), logger, "Tron", tronProbes); err != nil {
+		return err
 	}
 
 	// Create Tron clients with all endpoints

@@ -6,12 +6,45 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+> [!IMPORTANT]
+> An endpoint given without an explicit scheme is dialed **over TLS** (this is
+> the case since v0.2.0). TronGrid's gRPC endpoint is plaintext, so
+> `--tron-endpoints=grpc.trongrid.io:50051` never connects and must be written
+> `--tron-endpoints=http://grpc.trongrid.io:50051`. Until now that
+> misconfiguration was invisible: the block poller retries a failed fetch
+> forever without logging, so it looked like a poller frozen on one block. It
+> is now a startup error.
+
 ### Added
 
+- Every endpoint is probed for its head block before the poller starts. A
+  failing endpoint is logged, and if all endpoints of a kind fail, `firetron`
+  exits with the reason instead of starting a poller that can only retry
+  forever. Failures carry a hint for the usual causes (a plaintext endpoint
+  dialed over TLS, certificate validation, a rejected API key). A provider that
+  is down at startup therefore restarts the process rather than being polled
+  blindly.
 - Docker images are now published for both `linux/amd64` and `linux/arm64`.
 
 ### Changed
 
+- Block fetch failures are now logged (`WARN`) by both the Tron and the EVM
+  fetcher, with the same hint the startup check gives. The block poller retries
+  them forever without logging anything, so a permanently failing endpoint used
+  to be indistinguishable from a hang.
+
+  A failure that keeps repeating identically is collapsed to one `WARN` every 30
+  seconds, carrying the count of occurrences it stands for; the collapsed ones
+  remain visible at `DEBUG`. A first failure, a failure that changes, and a
+  failure coming back after a success are always logged immediately, so a
+  fallback pool quietly serving blocks through its healthy endpoint does not
+  turn into a log flood.
+- The deprecated `--tron-api-key` flag now rejects a value that is an unexpanded
+  variable reference (`$(VAR)`, `${VAR}`). Its value is used verbatim, so such a
+  value used to become the literal API key and fail as an authentication error
+  inside the poller's silent retry loop. Endpoint URLs interpolate `${VAR}` and
+  `$VAR` as before; anything else that ends up as a key is now caught by the
+  startup check.
 - The TRON protocol definitions (`github.com/streamingfast/tron-protocol` and the
   `buf.build/streamingfast/tron-protocol` Buf module) are updated to the ones
   shipped with node release **GreatVoyage-v4.8.2.1**, which `firetron` now
