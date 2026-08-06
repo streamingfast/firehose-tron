@@ -4,16 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Unreleased
-
-> [!IMPORTANT]
-> An endpoint given without an explicit scheme is dialed **over TLS** (this is
-> the case since v0.2.0). A plaintext-only gRPC endpoint given that way never
-> connects: `--tron-endpoints=grpc.example.com:50051` must be written
-> `--tron-endpoints=http://grpc.example.com:50051`. Until now that
-> misconfiguration was invisible: the block poller retries a failed fetch
-> forever without logging, so it looked like a poller frozen on one block. It
-> is now a startup error.
+## v0.3.0
 
 ### Added
 
