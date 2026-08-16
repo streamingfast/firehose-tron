@@ -4,6 +4,27 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Added
+
+- New `--providers-failback-interval` flag (default `10m`) on `fetch` and
+  `fetch-evm`, matching the flag `fireeth` exposes on its poller. The endpoint
+  pools use a sticky rolling strategy, so a single transient error moved polling
+  to a fallback endpoint and kept it there for the lifetime of the process, even
+  after the preferred endpoint recovered. The declared order is now re-preferred
+  on this interval, bounding how long a transient failure keeps polling off the
+  preferred endpoint. Set it to `0` for the previous behaviour.
+
+  On `fetch-evm` the Tron pool and the EVM pool fail back independently. A pool
+  holding a single endpoint never starts a ticker.
+
+### Changed
+
+- `firehose-core` is updated from `v1.9.11-0.20250611153121-caf831699a88` to
+  `v1.17.0`, which is what exposes `rpc.Clients.Reset`, the failback operation
+  the flag above builds on. The update needed no `firetron` source change.
+
 ## v0.3.0
 
 ### Added

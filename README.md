@@ -94,6 +94,12 @@ firetron fetch 0 \
   --tron-endpoints 'https://provider-b.io?apiKey=${PROVIDER_B_KEY}'
 ```
 
+Endpoints are tried in the order they are declared. A failing endpoint moves polling
+to the next one, and `--providers-failback-interval` (default `10m`) controls how long
+polling stays there: on every interval the declared order is re-preferred, so a
+transient failure does not keep you on a fallback provider for the lifetime of the
+process. Set it to `0` to stay on the fallback until the process is restarted.
+
 Endpoint URL conventions:
 - `--tron-api-key` is **deprecated** (it logs a warning when used). It still works as the default key for any endpoint that does not carry its own, but prefer `?apiKey=...` on each endpoint; the flag will be removed in a future release.
 - `http://` on an endpoint selects plaintext (no scheme defaults to `https://`).
