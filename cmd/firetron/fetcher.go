@@ -29,6 +29,7 @@ var FetchCommand = Command(fetchE,
 		flags.Duration("latest-block-retry-interval", time.Second, "Interval between retries when fetching latest block")
 		flags.Int("block-fetch-batch-size", 10, "Number of blocks to fetch in a single batch")
 		flags.Duration("max-block-fetch-duration", 3*time.Second, "Maximum delay before considering a block fetch as failed")
+		flags.Duration(failbackIntervalFlag, 10*time.Minute, failbackIntervalUsage)
 	}),
 )
 
@@ -49,6 +50,7 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	fetchInterval := sflags.MustGetDuration(cmd, "interval-between-fetch")
 	latestBlockRetryInterval := sflags.MustGetDuration(cmd, "latest-block-retry-interval")
 	maxBlockFetchDuration := sflags.MustGetDuration(cmd, "max-block-fetch-duration")
+	failbackInterval := sflags.MustGetDuration(cmd, failbackIntervalFlag)
 
 	endpoints, err := parseTronEndpoints(rpcEndpoints, apiKey)
 	if err != nil {
@@ -67,6 +69,7 @@ func fetchE(cmd *cobra.Command, args []string) error {
 		zap.Duration("interval_between_fetch", fetchInterval),
 		zap.Duration("latest_block_retry_interval", latestBlockRetryInterval),
 		zap.Duration("max_block_fetch_duration", maxBlockFetchDuration),
+		zap.Duration("providers_failback_interval", failbackInterval),
 	)
 
 	rollingStrategy := firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient]()
@@ -84,6 +87,8 @@ func fetchE(cmd *cobra.Command, args []string) error {
 	if err := probeEndpoints(cmd.Context(), logger, "Tron", tronProbes); err != nil {
 		return err
 	}
+
+	startEndpointFailback(logger, "Tron", tronClients, len(endpoints), failbackInterval)
 
 	// Create Tron clients with all endpoints
 	fetcher := rpc.NewFetcher(fetchInterval, latestBlockRetryInterval, logger)
