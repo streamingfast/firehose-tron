@@ -4,6 +4,17 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Changed
+
+- `firehose-core` is updated from `v1.17.0` to `v1.20.1`. The block poller's
+  per-block lines (`processing block`, `requesting block`, `saved cursor`, …) are
+  now logged at `Debug`; at `Info` they fired several times per block. The
+  `no clients have been working for over 1 minute` warning now fires after a
+  minute of continuous fetch failures rather than a minute after the last
+  success, and carries a `failing_for` field.
+
 ## v0.4.0
 
 ### Added
