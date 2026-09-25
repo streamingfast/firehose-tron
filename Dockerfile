@@ -1,4 +1,4 @@
-ARG FIRECORE_VERSION=v1.16.0
+ARG FIRECORE_VERSION=v1.20.1
 
 # The build stage always runs on the native architecture of the builder and cross
 # compiles, so no QEMU emulation is ever involved. GOOS/GOARCH default to the
