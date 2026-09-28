@@ -65,12 +65,17 @@ The `Build, push and release (if tag)` workflow then cross compiles the
 Docker, pushes the multi-platform image to `ghcr.io/streamingfast/firehose-tron`
 and creates the GitHub release, using the `CHANGELOG.md` section matching the tag
 as the release notes. A tag with no matching section fails the workflow before
-anything is published.
+anything is published. The binaries are attached both bare and as the
+`firehose-tron_<os>_<arch>.tar.gz` archives the Homebrew formula installs from,
+and the workflow opens a formula bump PR on `streamingfast/homebrew-tap`, which
+must be merged by hand. Without the `HOMEBREW_TAP_TOKEN` secret the bump is
+skipped with a warning.
 
-Tags containing `beta` or `rc` are published as pre-releases and do not move the
-`latest` Docker tag. Every other branch push builds and pushes a `linux/amd64`
-image only; a manual `workflow_dispatch` run builds the full binary matrix,
-which is the way to validate a release build before tagging.
+Tags containing `alpha`, `beta` or `rc` are published as pre-releases, do not
+update the Homebrew formula and do not move the `latest` Docker tag. Every other
+branch push builds and pushes a `linux/amd64` image only; a manual
+`workflow_dispatch` run builds the full binary matrix, which is the way to
+validate a release build before tagging.
 
 ## References
 
