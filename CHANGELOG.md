@@ -4,7 +4,7 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
-## Unreleased
+## v0.5.0
 
 ### Changed
 
@@ -14,6 +14,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `no clients have been working for over 1 minute` warning now fires after a
   minute of continuous fetch failures rather than a minute after the last
   success, and carries a `failing_for` field.
+
+### Fixed
+
+- Releases update the `firehose-tron` Homebrew formula again, which had stayed
+  on v0.2.0 since releases moved to the tag-driven workflow (#24). Each release
+  now also ships `firehose-tron_<os>_<arch>.tar.gz` archives, the assets the
+  formula installs from, next to the bare binaries. The formula bump is opened
+  as a pull request on `streamingfast/homebrew-tap` and lands once merged.
 
 ## v0.4.0
 
