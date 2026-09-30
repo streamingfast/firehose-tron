@@ -12,7 +12,7 @@ require (
 	github.com/streamingfast/bstream v0.0.2-0.20260921191230-ea57fcbd4fbb
 	github.com/streamingfast/cli v0.0.4-0.20250815192146-d8a233ec3d0b
 	github.com/streamingfast/dgrpc v0.0.0-20260917154456-85358c50e8f1
-	github.com/streamingfast/eth-go v0.0.0-20260216202159-4e2b7501894a
+	github.com/streamingfast/eth-go v0.0.0-20260930133233-d477e0158bf8
 	github.com/streamingfast/firehose-core v1.20.1
 	github.com/streamingfast/firehose-ethereum v1.4.23-0.20250611182355-7b5f2324a8e8
 	github.com/streamingfast/firehose-ethereum/types v0.0.0-20251113151010-c9c94d64348a
