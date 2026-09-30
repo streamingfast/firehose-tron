@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Fixed
+
+- `fetch-evm` no longer panics (nil pointer dereference) on its first block;
+  v0.4.0 and v0.5.0 are affected. `eth-go` is updated to include
+  streamingfast/eth-go#17. `fetch` is not affected.
+
 ## v0.5.0
 
 ### Changed
