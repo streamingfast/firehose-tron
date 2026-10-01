@@ -30,7 +30,7 @@ var TestBlockCommand = Command(testBlockE,
 		flags.Duration("interval-between-fetch", 100*time.Millisecond, "Interval between block fetches (default: 100ms to stay under 15qps limit)")
 		flags.Duration("latest-block-retry-interval", time.Second, "Interval between retries for latest block")
 		flags.Int("block-fetch-batch-size", 10, "Number of blocks to fetch in a single batch")
-		flags.Duration("max-block-fetch-duration", 3*time.Second, "Maximum delay before considering a block fetch as failed")
+		flags.Duration("max-block-fetch-duration", 3*time.Second, "Maximum duration of each head request, and of fetching one block, on an endpoint before it is considered failed; waiting for the chain to produce the requested block is capped separately at 30s")
 		flags.Int("max-requests-per-second", 14, "Maximum requests per second to TronGrid API (default: 14 to stay under 15qps limit)")
 	}),
 )
