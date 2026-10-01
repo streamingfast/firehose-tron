@@ -104,7 +104,7 @@ func (f *Fetcher) Fetch(ctx context.Context, client pbtronapi.WalletClient, requ
 }
 
 func (f *Fetcher) fetch(ctx context.Context, client pbtronapi.WalletClient, requestBlockNum uint64) (b *pbtron.Block, err error) {
-	f.logger.Info("fetching block", zap.Uint64("block_num", requestBlockNum))
+	f.logger.Debug("fetching block", zap.Uint64("block_num", requestBlockNum))
 
 	budget := callBudget(ctx)
 	if _, err := f.fetchLatestBlockNumUntil(ctx, client, int64(requestBlockNum), budget); err != nil {
@@ -145,7 +145,7 @@ func (f *Fetcher) fetchLatestBlockNumUntil(ctx context.Context, client pbtronapi
 	return f.head.waitFor(ctx, target, callTimeout, func(ctx context.Context) (int64, error) {
 		head, err := fetchLatestBlockNum(ctx, client)
 		if err == nil {
-			f.logger.Info("got latest block num", zap.Int64("latest_block_num", head), zap.Int64("requested_block_num", target))
+			f.logger.Debug("got latest block num", zap.Int64("latest_block_num", head), zap.Int64("requested_block_num", target))
 		}
 		return head, err
 	})
