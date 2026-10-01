@@ -4,6 +4,22 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## v0.5.2
+
+### Fixed
+
+- `fetch-evm` no longer crash-loops when an EVM endpoint answers
+  `eth_getBlockByNumber` with `null` for a block at or near the head it just
+  reported, which TronGrid's load-balanced JSON-RPC does. The fetch now fails
+  and is retried. v0.4.0 through v0.5.1 panic on it; earlier releases failed
+  the fetch and retried, as this one does.
+- `fetch` and both sides of `fetch-evm` no longer fail and roll to the next
+  provider when the requested block takes longer than
+  `--max-block-fetch-duration` to be produced. Waiting for the chain head is
+  bounded separately (30s, after which the provider is treated as failing),
+  each head request gets `--max-block-fetch-duration` of its own, and so does
+  the block fetch that follows.
+
 ## v0.5.1
 
 ### Fixed

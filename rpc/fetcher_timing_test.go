@@ -40,7 +40,7 @@ func TestHeadWaitAdvancesOnFakeClock(t *testing.T) {
 		client := &headAdvancingClient{callsUntilHead: 3}
 
 		start := time.Now()
-		_, err := f.fetchLatestBlockNumUntil(context.Background(), client, 100)
+		_, err := f.fetchLatestBlockNumUntil(context.Background(), client, 100, 0)
 		require.NoError(t, err)
 
 		// Two 500ms sleeps elapsed on the fake clock, instantly in wall time.

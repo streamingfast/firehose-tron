@@ -23,11 +23,10 @@ import (
 var _ blockpoller.BlockFetcher[pbtronapi.WalletClient] = (*Fetcher)(nil)
 
 type Fetcher struct {
-	fetchInterval            time.Duration
-	latestBlockRetryInterval time.Duration
-	logger                   *zap.Logger
-	fetchFailures            *failureLogger
-	latestBlockNum           int64
+	fetchInterval time.Duration
+	logger        *zap.Logger
+	fetchFailures *failureLogger
+	head          headWaiter
 }
 
 type apiKeyCredentials struct {
@@ -74,15 +73,15 @@ func NewFetcher(
 	logger *zap.Logger,
 ) *Fetcher {
 	return &Fetcher{
-		fetchInterval:            fetchInterval,
-		latestBlockRetryInterval: latestBlockRetryInterval,
-		logger:                   logger,
-		fetchFailures:            newFailureLogger(logger, failureLogInterval),
+		fetchInterval: fetchInterval,
+		logger:        logger,
+		fetchFailures: newFailureLogger(logger, failureLogInterval),
+		head:          headWaiter{retryInterval: latestBlockRetryInterval},
 	}
 }
 
 func (f *Fetcher) IsBlockAvailable(blockNum uint64) bool {
-	return uint64(f.latestBlockNum) >= blockNum
+	return uint64(f.head.Latest()) >= blockNum
 }
 
 // Fetch retrieves requestBlockNum and converts it to a Firehose block.
@@ -107,9 +106,13 @@ func (f *Fetcher) Fetch(ctx context.Context, client pbtronapi.WalletClient, requ
 func (f *Fetcher) fetch(ctx context.Context, client pbtronapi.WalletClient, requestBlockNum uint64) (b *pbtron.Block, err error) {
 	f.logger.Info("fetching block", zap.Uint64("block_num", requestBlockNum))
 
-	if _, err := f.fetchLatestBlockNumUntil(ctx, client, int64(requestBlockNum)); err != nil {
+	budget := callBudget(ctx)
+	if _, err := f.fetchLatestBlockNumUntil(ctx, client, int64(requestBlockNum), budget); err != nil {
 		return nil, err
 	}
+
+	ctx, cancel := withBudget(ctx, budget)
+	defer cancel()
 
 	// Fetch block data
 	blockExt, err := getBlock(ctx, client, int64(requestBlockNum))
@@ -137,26 +140,15 @@ func (f *Fetcher) fetch(ctx context.Context, client pbtronapi.WalletClient, requ
 }
 
 // fetchLatestBlockNumUntil blocks until the chain head reaches at least
-// target, polling on latestBlockRetryInterval. It returns the observed head.
-func (f *Fetcher) fetchLatestBlockNumUntil(ctx context.Context, client pbtronapi.WalletClient, target int64) (int64, error) {
-	sleepDuration := time.Duration(0)
-	for f.latestBlockNum < target {
-		time.Sleep(sleepDuration)
-
-		var err error
-		f.latestBlockNum, err = f.fetchLatestBlockNum(ctx, client)
-		if err != nil {
-			return 0, fmt.Errorf("waiting for latest block num: %w", err)
+// target, see headWaiter.waitFor. It returns the observed head.
+func (f *Fetcher) fetchLatestBlockNumUntil(ctx context.Context, client pbtronapi.WalletClient, target int64, callTimeout time.Duration) (int64, error) {
+	return f.head.waitFor(ctx, target, callTimeout, func(ctx context.Context) (int64, error) {
+		head, err := fetchLatestBlockNum(ctx, client)
+		if err == nil {
+			f.logger.Info("got latest block num", zap.Int64("latest_block_num", head), zap.Int64("requested_block_num", target))
 		}
-
-		f.logger.Info("got latest block num", zap.Int64("latest_block_num", f.latestBlockNum), zap.Int64("requested_block_num", target))
-
-		if f.latestBlockNum >= target {
-			break
-		}
-		sleepDuration = f.latestBlockRetryInterval
-	}
-	return f.latestBlockNum, nil
+		return head, err
+	})
 }
 
 func getBlock(ctx context.Context, client pbtronapi.WalletClient, blockNum int64) (*pbtronapi.BlockExtention, error) {
@@ -177,13 +169,12 @@ func getTransactionInfoByBlockNum(ctx context.Context, client pbtronapi.WalletCl
 	return txInfoList, nil
 }
 
-func (f *Fetcher) fetchLatestBlockNum(ctx context.Context, client pbtronapi.WalletClient) (int64, error) {
+func fetchLatestBlockNum(ctx context.Context, client pbtronapi.WalletClient) (int64, error) {
 	block, err := client.GetNowBlock2(ctx, &pbtronapi.EmptyMessage{})
 	if err != nil {
 		return 0, fmt.Errorf("fetching latest block num: %w", err)
 	}
 
-	f.latestBlockNum = block.BlockHeader.RawData.Number
 	return block.BlockHeader.RawData.Number, nil
 }
 

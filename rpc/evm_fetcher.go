@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/streamingfast/bstream"
@@ -30,7 +31,11 @@ type EVMFetcher struct {
 
 	tronClients *firecoreRPC.Clients[pbtronapi.WalletClient]
 	tronFetcher *Fetcher
-	evmFetcher  *blockfetcher.BlockFetcher
+	evmHead     headWaiter
+
+	fetchInterval time.Duration
+	lastFetchLock sync.Mutex
+	lastFetchAt   time.Time
 
 	// One throttle per side so a failing EVM provider never masks a Tron
 	// failure, and vice versa.
@@ -45,22 +50,19 @@ func NewEVMFetcher(
 	latestBlockRetryInterval time.Duration,
 	logger *zap.Logger,
 ) *EVMFetcher {
-
-	evmFetcher := blockfetcher.NewBlockFetcher(fetchInterval, latestBlockRetryInterval, 0, block.RpcToEthBlock, logger)
-	evmFetcher.SkipReceipts(true) // we set 0 parallel transaction fetchers and skip receipts, so that it uses getLogs() instead
-
 	return &EVMFetcher{
-		logger:       logger,
-		tronClients:  tronClients,
-		tronFetcher:  tronFetcher,
-		evmFetcher:   evmFetcher,
-		evmFailures:  newFailureLogger(logger, failureLogInterval),
-		tronFailures: newFailureLogger(logger, failureLogInterval),
+		logger:        logger,
+		tronClients:   tronClients,
+		tronFetcher:   tronFetcher,
+		evmHead:       headWaiter{retryInterval: latestBlockRetryInterval},
+		fetchInterval: fetchInterval,
+		evmFailures:   newFailureLogger(logger, failureLogInterval),
+		tronFailures:  newFailureLogger(logger, failureLogInterval),
 	}
 }
 
 func (f *EVMFetcher) IsBlockAvailable(blockNum uint64) bool {
-	return f.evmFetcher.IsBlockAvailable(blockNum)
+	return uint64(f.evmHead.Latest()) >= blockNum
 }
 
 // Fetch retrieves requestBlockNum from both the EVM (JSON-RPC) and the Tron
@@ -72,7 +74,22 @@ func (f *EVMFetcher) IsBlockAvailable(blockNum uint64) bool {
 // poller silently frozen on one block. A failure that keeps repeating is
 // collapsed to one line every failureLogInterval.
 func (f *EVMFetcher) Fetch(ctx context.Context, client *ethRPC.Client, requestBlockNum uint64) (b *pbbstream.Block, skipped bool, err error) {
-	block, err := f.evmFetcher.FetchPBEth(ctx, client, requestBlockNum)
+	budget := callBudget(ctx)
+	_, err = f.evmHead.waitFor(ctx, int64(requestBlockNum), budget, func(ctx context.Context) (int64, error) {
+		head, err := client.LatestBlockNum(ctx)
+		return int64(head), err
+	})
+	if err != nil {
+		f.evmFailures.log("failed to fetch block from EVM endpoint, the poller will retry", err, zap.Uint64("block_num", requestBlockNum))
+		return nil, false, err
+	}
+
+	f.throttle()
+
+	evmCtx, cancel := withBudget(ctx, budget)
+	defer cancel()
+
+	block, err := f.fetchEVMBlock(evmCtx, client, requestBlockNum)
 	if err != nil {
 		f.evmFailures.log("failed to fetch block from EVM endpoint, the poller will retry", err, zap.Uint64("block_num", requestBlockNum))
 		return nil, false, err
@@ -127,6 +144,53 @@ func (f *EVMFetcher) Fetch(ctx context.Context, client *ethRPC.Client, requestBl
 		ParentNum: block.GetFirehoseBlockParentNumber(),
 		Payload:   anyBlock,
 	}, false, nil
+}
+
+// fetchEVMBlock is firehose-ethereum's blockfetcher.FetchPBEth without its head
+// wait and throttle, with receipts skipped so logs come from one eth_getLogs.
+// FetchPBEth keeps a head cache of its own and waits on it under the caller's
+// deadline, which is what headWaiter exists to avoid.
+func (f *EVMFetcher) fetchEVMBlock(ctx context.Context, client *ethRPC.Client, blockNum uint64) (*pbeth.Block, error) {
+	rpcBlock, err := client.GetBlockByNumber(ctx, ethRPC.BlockNumber(blockNum), ethRPC.WithGetBlockFullTransaction())
+	if err != nil {
+		return nil, fmt.Errorf("fetching block %d: %w", blockNum, err)
+	}
+
+	// A load-balanced endpoint can answer null for a block its eth_blockNumber
+	// already covered, when the request lands on a backend that lags behind.
+	if rpcBlock == nil {
+		return nil, fmt.Errorf("block %d not found on this endpoint, it is either not available yet or was pruned", blockNum)
+	}
+	if rpcBlock.Hash == nil {
+		return nil, fmt.Errorf("block %d was returned without a hash", blockNum)
+	}
+
+	logs, err := blockfetcher.FetchLogs(ctx, eth.Bytes(rpcBlock.Hash.Bytes()), client)
+	if err != nil {
+		return nil, fmt.Errorf("fetching logs for block %d %q: %w", blockNum, rpcBlock.Hash.Pretty(), err)
+	}
+
+	ethBlock, _ := block.RpcToEthBlock(rpcBlock, nil, logs, f.logger)
+	return ethBlock, nil
+}
+
+// throttle spaces block fetches fetchInterval apart, concurrent ones included:
+// each claims the next free slot and sleeps until it. It runs before the block
+// fetch gets its deadline, so the sleep never eats into it.
+func (f *EVMFetcher) throttle() {
+	if f.fetchInterval <= 0 {
+		return
+	}
+
+	f.lastFetchLock.Lock()
+	slot := time.Now()
+	if next := f.lastFetchAt.Add(f.fetchInterval); next.After(slot) {
+		slot = next
+	}
+	f.lastFetchAt = slot
+	f.lastFetchLock.Unlock()
+
+	time.Sleep(time.Until(slot))
 }
 
 // fetchTronBlock fetches the Tron-native block for requestBlockNum through the
