@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## v0.5.3
+
+### Changed
+
+- `fetch` and `fetch-evm` log `fetching block` (once per block) and
+  `got latest block num` (once per head poll while waiting at the chain head,
+  every `--latest-block-retry-interval`) at `Debug` instead of `Info`.
+
 ## v0.5.2
 
 ### Fixed
