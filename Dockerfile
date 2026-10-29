@@ -1,11 +1,11 @@
-ARG FIRECORE_VERSION=v1.20.1
+ARG FIRECORE_VERSION=v1.21.1
 
 # The build stage always runs on the native architecture of the builder and cross
 # compiles, so no QEMU emulation is ever involved. GOOS/GOARCH default to the
 # target platform Buildx is producing, which is what the runtime image needs, and
 # can be overridden explicitly to produce a binary for a platform Docker has no
 # notion of (darwin).
-FROM --platform=$BUILDPLATFORM golang:1.26.5-bookworm AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.3-bookworm AS build
 
 ARG VERSION="dev"
 ARG TARGETOS

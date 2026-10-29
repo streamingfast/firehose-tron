@@ -4,6 +4,18 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Changed
+
+- `firehose-core` is updated from `v1.20.1` to `v1.21.1`. Startup no longer
+  lowers the open-files limit (`RLIMIT_NOFILE`) to 24,576 when it cannot raise
+  it to 1,000,000 and the current limit is already higher, as in containers
+  without `CAP_SYS_RESOURCE`. The update needed no `firetron` source change.
+- Docker images and release binaries are built with Go 1.27 (was 1.26), which
+  `firehose-core` `v1.21.0` and later require. The `Dockerfile` default
+  `FIRECORE_VERSION` is now `v1.21.1`.
+
 ## v0.5.3
 
 ### Changed
