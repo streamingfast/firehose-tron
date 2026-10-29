@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Changed
+
+- `firehose-core` is updated from `v1.20.1` to `v1.21.1`. The block poller
+  builds each `FIRE BLOCK` line in a reused buffer, and a failed write to
+  stdout now fails the block instead of being ignored. The line format is
+  unchanged.
+- `eth-go` is updated to its `develop` head. `fetch-evm` closes the response
+  body when the EVM JSON-RPC endpoint answers with an HTTP error status,
+  instead of leaving the connection open.
+- Building from source requires Go 1.27 (was 1.26), which `firehose-core`
+  `v1.21.0` and later require. Docker images and release binaries are built
+  with Go 1.27.
+
 ### Fixed
 
 - The `linux/arm64` Docker image ships an `arm64` `firecore`. Up to v0.5.3 it
