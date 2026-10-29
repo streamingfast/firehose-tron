@@ -349,8 +349,8 @@ github.com/streamingfast/dmetrics v0.0.0-20260819172634-28069dc8018a h1:PD+qW3nI
 github.com/streamingfast/dmetrics v0.0.0-20260819172634-28069dc8018a/go.mod h1:JbxEDbzWRG1dHdNIPrYfuPllEkktZMgm40AwVIBENcw=
 github.com/streamingfast/dstore v0.2.4-0.20261008160055-755341d68ee7 h1:anhJoM5lK1WtKwCQr9MDS9MU9cwU+KnjakKVnCwoafI=
 github.com/streamingfast/dstore v0.2.4-0.20261008160055-755341d68ee7/go.mod h1:x49MdVwfZ5ytOOYwo4BHf6FDCA8xDPmBmVvXBoZYnZg=
-github.com/streamingfast/eth-go v0.0.0-20260930133233-d477e0158bf8 h1:NFg8yTFE89J3JNzaYgiUKYViceJuPCVLF22sQYOL81Q=
-github.com/streamingfast/eth-go v0.0.0-20260930133233-d477e0158bf8/go.mod h1:1szIYZI+rTjWWVYd1kFJomFiPCMvcZfBmylCwRaK8yY=
+github.com/streamingfast/eth-go v0.0.0-20261002145937-736af9a002ec h1:zPeX8Mzujctd/vTbUq24XJzNdqj950h1IcQ2cVIFslk=
+github.com/streamingfast/eth-go v0.0.0-20261002145937-736af9a002ec/go.mod h1:iaGNhvYNm/UeLa6QYGgkhPRaub+paEfIUk+jzvE3dCA=
 github.com/streamingfast/firehose-core v1.21.1 h1:1rPAN2qRyOIRvlNmgWMNfRrW4y2Ov9Ndl6VxHrHKghs=
 github.com/streamingfast/firehose-core v1.21.1/go.mod h1:JDqwnRdyPi5SzQBIp0HCAjxnyakbHGACqJKYnfE+0Yk=
 github.com/streamingfast/firehose-ethereum v1.4.23-0.20250611182355-7b5f2324a8e8 h1:5rNwujlr3aKrIBI8W3XYeb4wVqk5Xv4G5nIohvKMBpI=
