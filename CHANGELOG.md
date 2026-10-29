@@ -19,6 +19,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   `v1.21.0` and later require. Docker images and release binaries are built
   with Go 1.27.
 
+### Fixed
+
+- The `linux/arm64` Docker image ships an `arm64` `firecore`. Up to v0.5.3 it
+  was built on the `amd64` firehose-core image, so `firecore` failed with
+  `exec format error` on `arm64` hosts. The base image is the firehose-core
+  version in `go.mod`, the one `firetron` is compiled against.
+
 ## v0.5.3
 
 ### Changed

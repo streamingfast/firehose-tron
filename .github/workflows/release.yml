@@ -235,11 +235,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # The base image is the firehose-core release firetron is compiled against,
+      # and its multi-arch tag so each platform gets its own firecore.
       - name: Extract Firehose Core version
         id: extract-firecore-version
         run: |
-          docker pull ghcr.io/streamingfast/firehose-core:latest
-          echo VERSION=$(docker inspect --format='{{index .Config.Labels "org.opencontainers.image.version"}}' 'ghcr.io/streamingfast/firehose-core:latest') >> "$GITHUB_OUTPUT"
+          set -euo pipefail
+
+          version=$(awk '$1 == "github.com/streamingfast/firehose-core" { print $2 }' go.mod)
+          if [[ ! "$version" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=go.mod::github.com/streamingfast/firehose-core must be a release (vX.Y.Z) to have a base image, got '${version}'"
+            exit 1
+          fi
+
+          echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
 
       # No QEMU is set up on purpose: the build stage cross compiles natively and
       # the runtime stage only copies a file into the firehose-core base, so
