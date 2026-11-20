@@ -1,5 +1,4 @@
 global:
+  binary: firetron
   language: golang
-  variant: chain
-release:
-  changelog-path: CHANGELOG.md
+  variant: application
