@@ -55,10 +55,9 @@ jobs:
           is_release="false"
           if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
             version="${GITHUB_REF#refs/tags/}"
-            # Only a tag PUSH publishes. workflow_dispatch accepts a tag in its ref
-            # selector, and that run is for re-validating the matrix, it must not
-            # re-upload assets over a published release or reopen the formula PR.
-            if [[ "${GITHUB_EVENT_NAME}" == "push" ]]; then
+            # A tag push or the CI release's dispatch publishes. A manual dispatch on a
+            # tag only re-validates the matrix, it must not re-upload a published release.
+            if [[ "${GITHUB_EVENT_NAME}" == "push" || "${GITHUB_ACTOR}" == "github-actions[bot]" ]]; then
               is_release="true"
             fi
           fi
