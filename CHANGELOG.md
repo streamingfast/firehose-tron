@@ -14,7 +14,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
   is cut.
 - The Docker image is built per architecture (`<tag|sha7>-amd64`, `-arm64`) and
   merged into a multi-arch manifest once every architecture passes the scan.
-
 - `firehose-core` is updated from `v1.21.1` to `v1.21.2`, which is also the base
   Docker image. `golang.org/x/net`, `go-jose` and `klauspost/compress` are bumped
   to their fixed versions.
