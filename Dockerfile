@@ -1,4 +1,4 @@
-ARG FIRECORE_VERSION=v1.21.1
+ARG FIRECORE_VERSION=v1.21.2
 
 # The build stage always runs on the native architecture of the builder and cross
 # compiles, so no QEMU emulation is ever involved. GOOS/GOARCH default to the
@@ -32,5 +32,12 @@ FROM scratch AS binary
 COPY --from=build /app/firetron /firetron
 
 FROM ghcr.io/streamingfast/firehose-core:${FIRECORE_VERSION}
+
+# Pull Ubuntu security fixes that landed after the firehose-core base image was
+# built, so the image does not ship known-vulnerable OS packages (the release
+# workflow gates on critical/high CVEs).
+RUN apt-get update \
+  && apt-get upgrade -y --no-install-recommends \
+  && rm -rf /var/lib/apt/lists/*
 
 COPY --from=build /app/firetron /app/firetron

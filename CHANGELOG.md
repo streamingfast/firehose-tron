@@ -4,6 +4,21 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Changed
+
+- `firehose-core` is updated from `v1.21.1` to `v1.21.2`, which is also the base
+  Docker image. `golang.org/x/net`, `go-jose` and `klauspost/compress` are bumped
+  to their fixed versions.
+
+### Security
+
+- The Docker image upgrades its Ubuntu packages at build time, which fixes
+  critical/high CVEs in `apt` and `brotli`.
+- The release workflow now scans the pushed Docker image with Docker Scout and
+  fails on critical/high findings before the release is published.
+
 ## v0.5.4
 
 ### Changed
