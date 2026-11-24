@@ -53,29 +53,10 @@ This successfully produced:
 
 Releases are cut by CI, there is nothing to run locally:
 
-1. Land a PR that moves the `## Unreleased` section of [CHANGELOG.md](CHANGELOG.md) to the version being released, e.g. `## v0.3.0`.
-2. Tag the merge commit and push the tag:
+1. Open a PR that moves the `## Unreleased` section of [CHANGELOG.md](CHANGELOG.md) to the version being released, e.g. `## v0.3.0`. The `Draft release` workflow detects the version and prepares a draft GitHub release with `sfreleaser`.
+2. Merge the PR. The `Publish release` workflow publishes the release (binaries, Homebrew formula bump PR on `streamingfast/homebrew-tap` which must be merged by hand), pushes the tag and starts the `Build docker image` workflow on it.
 
-   ```shell
-   git tag v0.3.0 && git push origin v0.3.0
-   ```
-
-The `Build, push and release (if tag)` workflow then cross compiles the
-`linux/amd64`, `linux/arm64`, `darwin/amd64` and `darwin/arm64` binaries inside
-Docker, pushes the multi-platform image to `ghcr.io/streamingfast/firehose-tron`
-and creates the GitHub release, using the `CHANGELOG.md` section matching the tag
-as the release notes. A tag with no matching section fails the workflow before
-anything is published. The binaries are attached both bare and as the
-`firehose-tron_<os>_<arch>.tar.gz` archives the Homebrew formula installs from,
-and the workflow opens a formula bump PR on `streamingfast/homebrew-tap`, which
-must be merged by hand. Without the `HOMEBREW_TAP_TOKEN` secret the bump is
-skipped with a warning.
-
-Tags containing `alpha`, `beta` or `rc` are published as pre-releases, do not
-update the Homebrew formula and do not move the `latest` Docker tag. Every other
-branch push builds and pushes a `linux/amd64` image only; a manual
-`workflow_dispatch` run builds the full binary matrix, which is the way to
-validate a release build before tagging.
+`Build docker image` builds one image per architecture, scans each with Docker Scout (a critical or high finding fails the run), then publishes the multi-arch manifest on `ghcr.io/streamingfast/firehose-tron` as `<tag>`, `<sha7>` and `latest`. Tags containing `alpha`, `beta` or `rc` do not move `latest`. Pushes to `main` publish `main` and `<sha7>`. Run `Publish release` manually with a tag to redo the publish steps of an existing release.
 
 ## References
 

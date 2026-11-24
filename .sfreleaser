@@ -1,0 +1,6 @@
+global:
+  binary: firetron
+  language: golang
+  variant: application
+release:
+  builder: native
