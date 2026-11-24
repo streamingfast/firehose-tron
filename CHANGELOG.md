@@ -4,6 +4,27 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## v0.5.5
+
+### Changed
+
+- Releases go through the draft/publish flow again: a PR changing `CHANGELOG.md`
+  prepares a draft release, merging it publishes the release and starts the Docker
+  image build on the tag. Pushing a `v*` tag by hand is no longer how a release
+  is cut.
+- The Docker image is built per architecture (`<tag|sha7>-amd64`, `-arm64`) and
+  merged into a multi-arch manifest once every architecture passes the scan.
+- `firehose-core` is updated from `v1.21.1` to `v1.21.2`, which is also the base
+  Docker image. `golang.org/x/net`, `go-jose` and `klauspost/compress` are bumped
+  to their fixed versions.
+
+### Security
+
+- The Docker image upgrades its Ubuntu packages at build time, which fixes
+  critical/high CVEs in `apt` and `brotli`.
+- The Docker image workflow now scans each pushed image with Docker Scout and
+  fails on critical/high findings before the manifest is published.
+
 ## v0.5.4
 
 ### Changed
