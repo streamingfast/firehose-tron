@@ -292,6 +292,24 @@ jobs:
             FIRECORE_VERSION=${{ steps.extract-firecore-version.outputs.VERSION }}
             VERSION=${{ needs.setup.outputs.version }}
 
+      - name: Compute short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      # `release` and the Slack notice depend on this job, so a critical/high finding
+      # stops the release here. Skipped for dependabot branch pushes, which cannot read
+      # the Scout secrets. The workflow has no pull_request trigger, so `scan-paths`
+      # and a deeper checkout are not needed: every run is a push and always scans.
+      - name: Scan the image
+        if: github.actor != 'dependabot[bot]'
+        uses: streamingfast/actions/image-scan/gate@v1
+        with:
+          # Multi-arch image, tagged with the short SHA and without an architecture suffix
+          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.sha.outputs.short }}
+          dockerhub-user: ${{ secrets.DOCKER_SCOUT_USER }}
+          dockerhub-password: ${{ secrets.DOCKER_SCOUT_PASSWORD }}
+          severities: critical,high
+
   release:
     name: Release
     runs-on: ubuntu-24.04
