@@ -69,6 +69,9 @@ jobs:
 
           echo "VERSION=${version}" >> "$GITHUB_OUTPUT"
 
+      # Per-architecture tags added by the image scan gate once the image is clean, so a
+      # vulnerable image never gets a release tag. The manifest job needs `<sha7>-<arch>`
+      # and the weekly scan needs `<tag>-<arch>`, both are among them.
       - name: Generate docker tags/labels from github build context
         id: meta
         uses: docker/metadata-action@v6
@@ -77,8 +80,18 @@ jobs:
           tags: |
             type=ref,event=tag,suffix=-${{ matrix.architecture }}
             type=sha,prefix=,suffix=-${{ matrix.architecture }}
-            type=sha,prefix=,enable=${{ matrix.architecture == 'amd64' }}
             type=raw,enable=${{ github.ref == 'refs/heads/main' }},value=main,suffix=-${{ matrix.architecture }}
+          flavor: |
+            latest=false
+
+      # The only tag pushed by the build: the immutable commit tag the gate scans
+      - name: Generate the immutable commit docker tag
+        id: sha
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=sha,prefix=,suffix=-${{ matrix.architecture }}
           flavor: |
             latest=false
 
@@ -90,7 +103,7 @@ jobs:
           platforms: linux/${{ matrix.architecture }}
           load: ${{ github.event_name == 'pull_request' }}
           push: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
-          tags: ${{ steps.meta.outputs.tags }}
+          tags: ${{ steps.sha.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           provenance: false
           cache-from: type=gha,scope=docker-${{ matrix.architecture }}
@@ -100,12 +113,15 @@ jobs:
             VERSION=${{ steps.extract-version.outputs.VERSION }}
 
       # The image is always built, only the scan is skipped on pull requests that cannot change its contents.
-      # Branch/tag pushes always scan (the release gate stays strict). The `push` job below publishes
-      # the final tags and manifest, it needs every architecture to pass this scan.
+      # Branch/tag pushes always scan (the release gate stays strict). After a clean scan the gate adds
+      # the release tags, on findings nothing is promoted. The `push` job below publishes the final
+      # tags and manifest, it needs every architecture to pass this scan.
       - name: Scan the image
         if: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && github.actor != 'dependabot[bot]' }}
         uses: streamingfast/actions/image-scan/gate@v1
         with:
+          image: ${{ steps.sha.outputs.tags }}
+          promote-tags: ${{ steps.meta.outputs.tags }}
           dockerhub-user: ${{ secrets.DOCKER_SCOUT_USER }}
           dockerhub-password: ${{ secrets.DOCKER_SCOUT_PASSWORD }}
           severities: critical,high

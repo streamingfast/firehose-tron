@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
+## Unreleased
+
+### Changed
+
+- The Docker image build only pushes the immutable `<sha7>-<arch>` tag, the
+  per-architecture release tags (`<tag>-<arch>`, `main-<arch>`) are added by the
+  image scan gate once the scan is clean, so a vulnerable image never gets a
+  release tag. The untested amd64-only `<sha7>` tag is no longer pushed before the
+  multi-arch manifest.
+
 ## v0.5.5
 
 ### Changed
