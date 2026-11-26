@@ -1,10 +1,18 @@
 package rpc
 
 import (
+	"errors"
 	"strings"
 
+	ethRPC "github.com/streamingfast/eth-go/rpc"
 	"go.uber.org/zap"
 )
+
+// errorCodePrunedHistory is the JSON-RPC error code java-tron 4.8.3+ answers
+// when the requested block, receipts or logs are no longer, or were never,
+// stored by the node: a Lite FullNode below its retained range, or a node
+// started with `storage.transHistory.switch = "off"`.
+const errorCodePrunedHistory ethRPC.ErrorCode = 4444
 
 // FailureHint turns the most common endpoint misconfigurations into the fix,
 // since the raw transport error rarely reads as one. It returns an empty string
@@ -12,6 +20,10 @@ import (
 func FailureHint(err error) string {
 	if err == nil {
 		return ""
+	}
+
+	if rpcErr, ok := errors.AsType[*ethRPC.ErrResponse](err); ok && rpcErr.Code == errorCodePrunedHistory {
+		return "the endpoint does not have this block's history: it is a Lite FullNode or runs with storage.transHistory.switch = \"off\", point it at a FullNode keeping full block and transaction history"
 	}
 
 	message := err.Error()

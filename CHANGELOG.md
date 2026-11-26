@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## Unreleased
 
+### Added
+
+- Failures caused by java-tron 4.8.3's `4444 Pruned history unavailable` JSON-RPC
+  error now come with a hint: the `fetch-evm` endpoint is a Lite FullNode or runs
+  with `storage.transHistory.switch = "off"`, and must be pointed at a node
+  keeping full block and transaction history.
+
 ### Changed
 
 - The Docker image build only pushes the immutable `<sha7>-<arch>` tag, the

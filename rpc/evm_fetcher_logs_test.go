@@ -23,6 +23,8 @@ const testBlockHash = "0x0000000000000064b1a2c3d4e5f60718293a4b5c6d7e8f90a1b2c3d
 // records the eth_getLogs params it received. Block 100 is the head unless
 // headAt is set, in which case the head is 99 until then. nullBlock answers
 // null to eth_getBlockByNumber, like a lagging load-balanced backend does.
+// prunedLogs answers eth_getLogs with the 4444 error java-tron 4.8.3+ returns
+// when it does not store the block's receipts.
 type evmNode struct {
 	mu            sync.Mutex
 	getLogsParams map[string]any
@@ -30,6 +32,7 @@ type evmNode struct {
 	blockCallsAt  []time.Time
 	headAt        time.Time
 	nullBlock     bool
+	prunedLogs    bool
 }
 
 func (n *evmNode) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
@@ -71,6 +74,9 @@ func (n *evmNode) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 			"miner": "0x0000000000000000000000000000000000000000",
 			"transactions": []
 		}`
+	case call.Method == "eth_getLogs" && n.prunedLogs:
+		rw.Write([]byte(`{"jsonrpc":"2.0","id":` + string(call.ID) + `,"error":{"code":4444,"message":"Pruned history unavailable"}}`))
+		return
 	case call.Method == "eth_getLogs":
 		var params map[string]any
 		if len(call.Params) != 1 || json.Unmarshal(call.Params[0], &params) != nil {
@@ -123,6 +129,22 @@ func TestEVMFetcherNullBlockIsAnError(t *testing.T) {
 	_, _, err := evm.Fetch(context.Background(), ethRPC.NewClient(server.URL), 100)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
+}
+
+// A java-tron 4.8.3+ node that does not keep transaction history answers
+// eth_getLogs with 4444 instead of an empty list. The fetch must fail, and the
+// failure must point at the node configuration.
+func TestEVMFetcherPrunedLogsHint(t *testing.T) {
+	server := httptest.NewServer(&evmNode{prunedLogs: true})
+	defer server.Close()
+
+	clients := firecoreRPC.NewClients(0, firecoreRPC.NewStickyRollingStrategy[pbtronapi.WalletClient](), zlogTest)
+	evm := NewEVMFetcher(clients, NewFetcher(0, 0, zlogTest), 0, 0, zlogTest)
+
+	_, err := evm.fetchEVMBlock(context.Background(), ethRPC.NewClient(server.URL), 100)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "code 4444")
+	assert.Contains(t, FailureHint(err), "storage.transHistory.switch")
 }
 
 // A head already seen to cover the next block is not asked for again, and

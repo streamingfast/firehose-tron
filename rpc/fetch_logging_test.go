@@ -3,6 +3,7 @@ package rpc
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -78,6 +79,8 @@ func TestFailureHint(t *testing.T) {
 	assert.Empty(t, FailureHint(errors.New("context deadline exceeded")))
 	assert.Contains(t, FailureHint(errors.New(`tls: first record does not look like a TLS handshake`)), "http://")
 	assert.Contains(t, FailureHint(errors.New(`x509: certificate signed by unknown authority`)), "insecure=true")
+	assert.Contains(t, FailureHint(fmt.Errorf("fetching block 1: %w", &ethRPC.ErrResponse{Code: 4444, Message: "Pruned history unavailable"})), "Lite FullNode")
+	assert.Empty(t, FailureHint(&ethRPC.ErrResponse{Code: -32000, Message: "execution reverted"}))
 }
 
 func TestEVMFetcherLogsFetchFailure(t *testing.T) {
